@@ -7,14 +7,14 @@ df0 <- read_sav("Data/export.sav")
 item_labels <- read_excel("Data/enkat_export.xlsx") |>
   filter(str_detect(`Variable Name`, "^VAR0[567]_")) |>
   mutate(item = str_extract(Label, "(?<= - ).+$")) |>
-  select(var = `Variable Name`, item)
+  select(var0 = `Variable Name`, item)
 
-var05_labels <- item_labels |> filter(startsWith(var, "VAR05")) |>
-  mutate(var = str_replace(var, "^VAR05_", "Resurs_Likert_")) |> deframe()
-var06_labels <- item_labels |> filter(startsWith(var, "VAR06")) |>
-  mutate(var = str_replace(var, "^VAR06_", "Resurs_Rank_")) |> deframe()
-var07_labels <- item_labels |> filter(startsWith(var, "VAR07")) |>
-  mutate(var = str_replace(var, "^VAR07_", "Påstående_")) |> deframe()
+var05_labels <- item_labels |> filter(startsWith(var0, "VAR05")) |>
+  mutate(var = str_replace(var0, "^VAR05_", "Resurs_Likert_")) |> select(var, item) |> deframe()
+var06_labels <- item_labels |> filter(startsWith(var0, "VAR06")) |>
+  mutate(var = str_replace(var0, "^VAR06_", "Resurs_Rank_")) |> select(var, item) |> deframe()
+var07_labels <- item_labels |> filter(startsWith(var0, "VAR07")) |>
+  mutate(var = str_replace(var0, "^VAR07_", "Påstående_")) |> select(var, item) |> deframe()
 
 likert_05 <- c(Aldrig = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Alltid = 6)
 likert_07 <- c(`Inte alls` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Fullständigt = 6)
@@ -65,4 +65,17 @@ df <- df0 |>
   rename_with(~ str_replace(.x, "^VAR06_", "Resurs_Rank_"),     starts_with("VAR06_")) |>
   rename_with(~ str_replace(.x, "^VAR07_", "Påstående_"),       starts_with("VAR07_"))
 
+
+item_labels <- item_labels |>
+  mutate(var = var0 |>
+    str_replace("^VAR04_", "Tid_uppd_timmar_") |>
+    str_replace("^VAR05_", "Resurs_Likert_")   |>
+    str_replace("^VAR06_", "Resurs_Rank_")     |>
+    str_replace("^VAR07_", "Påstående_")
+  ) |> 
+  select(var,item,var0)
+
 saveRDS(df,'Data/enkat.rds')
+saveRDS(item_labels,'Data/item_labels.rds')
+
+rm(list=c("df","df0","item_labels","likert_05","likert_07","var05_labels","var06_labels","var07_labels"))
