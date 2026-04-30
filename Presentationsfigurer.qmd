@@ -1,0 +1,130 @@
+---
+title: "Matematikresurser - en enkätundersökning vid Lunds universitet"
+author: "Linda Hartman och Sara Maad Sasane"
+format: 
+  html:
+    embed-resources: true
+echo: false
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(skimr)
+
+```
+
+## Data
+
+Data from 585 respondents to a survey. Data was exported to SPSS and cleaned in script `dm.R`. 
+
+Free text answers are not included here.
+
+
+```{r}
+#| label: data
+
+enkat <- readRDS('Data/enkat.rds') |> select(-starts_with("VAR"))
+item_labels <- readRDS('Data/item_labels.rds')
+
+```
+
+```{r}
+#| label: skim
+enkat |>  skim()
+```
+
+
+## Sceduled time - as percentage of total course time
+
+
+
+For all 
+```{r}
+
+nlbl= paste0(" n = ", enkat |>count()) 
+enkat |>
+  count(Tid_schema_grp5) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Tid_schema_grp5, y = pct, fill = Tid_schema_grp5)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = NULL, y = NULL,  title = "Andel Schemalagd tid",
+       caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50),
+       subtitle = nlbl)  +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+enkat |>
+  filter(!is.na(subject)) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Tid_schema_grp5) |>
+  group_by(subject) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_total, ")"))) |>
+  ggplot(aes(x = Tid_schema_grp5, y = pct, fill = Tid_schema_grp5)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ subject_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid",caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+### Separate for B2, Matstat etc
+
+```{r}
+
+
+enkat |>
+  filter(!is.na(group)) |>
+#  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(group, Tid_schema_grp5) |>
+  group_by(group) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+  mutate(group_lbl = fct_inorder(paste0(group, " (n = ", n_total, ")"))) |>
+  ggplot(aes(x = Tid_schema_grp5, y = pct, fill = Tid_schema_grp5)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ group_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid",caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+## The same but as violins
+```{r}
+bind_rows(
+  enkat |> filter(!is.na(subject)) |> mutate(subject = "Total"),
+  enkat |> filter(!is.na(subject))
+) |>
+  mutate(subject = factor(subject,
+    levels = c("Total", "Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  ggplot(aes(x = subject, y = Tid_schema_proc, fill = subject)) +
+  geom_violin() +
+  scale_fill_manual(values = c("Total" = "grey70",
+    "Matte LTH"   = "#74c476",
+    "Matte NF"    = "#41ab5d",
+    "Matstat LTH" = "#238b45",
+    "Matstat NF"  = "#005a32")) +
+  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)",
+    caption = str_wrap(attr(enkat$Tid_schema_proc, "label"), width = 50)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
