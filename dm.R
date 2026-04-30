@@ -63,7 +63,10 @@ df <- df0 |>
   rename_with(~ str_replace(.x, "^VAR04_", "Tid_uppd_timmar_"), starts_with("VAR04_")) |>
   rename_with(~ str_replace(.x, "^VAR05_", "Resurs_Likert_"),   starts_with("VAR05_")) |>
   rename_with(~ str_replace(.x, "^VAR06_", "Resurs_Rank_"),     starts_with("VAR06_")) |>
-  rename_with(~ str_replace(.x, "^VAR07_", "Påstående_"),       starts_with("VAR07_"))
+  rename_with(~ str_replace(.x, "^VAR07_", "Påstående_"),       starts_with("VAR07_")) |> 
+  select(ID:course_name,starts_with('Tid'),starts_with('Resurs_'),starts_with('Påstående'),
+         everything())
+
 
 
 item_labels <- item_labels |>
@@ -74,6 +77,26 @@ item_labels <- item_labels |>
     str_replace("^VAR07_", "Påstående_")
   ) |> 
   select(var,item,var0)
+
+# Add factor versions
+df <- df |>
+  mutate(Tid_schema_grp5 = case_when(
+    Tid_schema_proc == 0   ~ "0%",
+    Tid_schema_proc <= 30  ~ "1–30%",
+    Tid_schema_proc <= 50  ~ "31–50%",
+    Tid_schema_proc <= 70  ~ "51–70%",
+    Tid_schema_proc <= 100 ~ "71–100%"
+  ) |> factor(levels = c("0%", "1–30%", "31–50%", "51–70%", "71–100%")),
+  .after = Tid_schema_proc) |>
+  mutate(subject = case_when(
+    str_starts(course_code, "FMA") ~ "Matte LTH",
+    str_starts(course_code, "FMS") ~ "Matstat LTH",
+    str_starts(course_code, "MAT") ~ "Matte NF",
+    str_starts(course_code, "MAS") ~ "Matstat NF"
+  ) |> factor(),
+  .after = course_code)
+
+
 
 saveRDS(df,'Data/enkat.rds')
 saveRDS(item_labels,'Data/item_labels.rds')
