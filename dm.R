@@ -94,7 +94,19 @@ df <- df |>
     str_starts(course_code, "MAT") ~ "Matte NF",
     str_starts(course_code, "MAS") ~ "Matstat NF"
   ) |> factor(),
-  .after = course_code)
+  .after = course_code) |>
+  mutate(group = case_when(
+    course_code == "FMAB70" &
+      prog %in% c("Teknisk fysik", "Teknisk matematik", "Teknisk nanovetenskap") ~ 1L,
+    course_code == "FMAB70"                                                       ~ 2L,
+    course_code == "MATA32"                                                       ~ 3L,
+    course_code %in% c("FMSF50", "FMSF20")                                       ~ 4L,
+    course_code == "MASA03"                                                       ~ 5L
+    ) |>
+    factor(levels = c(1L, 2L, 3L, 4L, 5L),
+           labels = c("B2 (F,pi,Nano)", "B2 (övriga)",
+                      "MATA32", "FMSF50/20", "MASA03")),
+  .after = subject)
 
 
 
