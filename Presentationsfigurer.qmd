@@ -87,19 +87,19 @@ enkat |>
 
 
 enkat |>
-  filter(!is.na(group)) |>
+  filter(!is.na(course_gr)) |>
 #  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
-  count(group, Tid_schema_grp5) |>
-  group_by(group) |>
+  count(course_gr, Tid_schema_grp5) |>
+  group_by(course_gr) |>
   mutate(pct = n / sum(n), n_total = sum(n)) |>
   ungroup() |>
-  mutate(group_lbl = fct_inorder(paste0(group, " (n = ", n_total, ")"))) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
   ggplot(aes(x = Tid_schema_grp5, y = pct, fill = Tid_schema_grp5)) +
   geom_col() +
   geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
-  facet_wrap(~ group_lbl, nrow = 2) +
+  facet_wrap(~ course_gr_lbl, nrow = 2) +
   labs(x = NULL, y = NULL, title = "Andel Schemalagd tid",caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50)) +
   theme_minimal() +
   theme(legend.position = "none")
@@ -107,22 +107,127 @@ enkat |>
 ```
 
 ## The same but as violins
+
+All courses 
 ```{r}
-bind_rows(
-  enkat |> filter(!is.na(subject)) |> mutate(subject = "Total"),
-  enkat |> filter(!is.na(subject))
+#| label: violin_all
+
+seldata =  enkat |> filter(!is.na(subject)) 
+plotdata= bind_rows(
+  seldata |> mutate(subject = "Total"),
+  seldata
 ) |>
   mutate(subject = factor(subject,
-    levels = c("Total", "Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+    levels = c("Total", "Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF")))
+
+plotdata_sum <- plotdata |> group_by(subject) |> 
+  summarize(n=n(),nlab=paste0("n = \n",n),Tid_schema_proc = mean(Tid_schema_proc))
+
+nlbl=paste0(" n = ", plotdata |> filter(subject != "Total") |> count()) 
+
+plotdata |>
   ggplot(aes(x = subject, y = Tid_schema_proc, fill = subject)) +
   geom_violin() +
+ geom_text(aes(label = nlab), data = plotdata_sum) +
   scale_fill_manual(values = c("Total" = "grey70",
     "Matte LTH"   = "#74c476",
     "Matte NF"    = "#41ab5d",
     "Matstat LTH" = "#238b45",
     "Matstat NF"  = "#005a32")) +
-  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)",
+  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)", subtitle=nlbl,
     caption = str_wrap(attr(enkat$Tid_schema_proc, "label"), width = 50)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+
+### Selected courses 
+```{r}
+#| label: violin_sel
+
+seldata =  enkat |> filter(!is.na(course_gr)) 
+
+plotdata= bind_rows(
+  seldata |> mutate(course_gr = "Total"),
+  seldata
+) |>
+  mutate(course_gr = factor(course_gr,
+    levels = c("Total", levels(seldata$course_gr))))
+
+plotdata_sum <- plotdata |> group_by(course_gr) |> 
+  summarize(n=n(),nlab=paste0("n = \n",n),Tid_schema_proc = mean(Tid_schema_proc))
+
+nlbl=paste0(" n = ", plotdata |> filter(course_gr != "Total") |> count()) 
+
+plotdata |>
+  ggplot(aes(x = course_gr, y = Tid_schema_proc, fill = course_gr)) +
+  geom_violin() +
+ geom_text(aes(label = nlab), data = plotdata_sum) +
+  # scale_fill_manual(values = c("Total" = "grey70",
+  #   "Matte LTH"   = "#74c476",
+  #   "Matte NF"    = "#41ab5d",
+  #   "Matstat LTH" = "#238b45",
+  #   "Matstat NF"  = "#005a32")) +
+   scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)", subtitle=nlbl,
+    caption = str_wrap(attr(enkat$Tid_schema_proc, "label"), width = 50)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+## AI usage
+
+Results from VAR05_12 "Generativ AI (t ex Copilot, ChatGPT)"
+
+### All answers
+```{r}
+nlbl= paste0(" n = ", enkat |>count()) 
+cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
+enkat |>
+  count(Resurs_Likert_12) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = NULL, y = NULL,  title = "AI användning",
+       caption = str_wrap(cap,width=50),
+       subtitle = nlbl)  +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+
+Per subject
+```{r}
+nlbl= paste0(" n = ", enkat |>count()) 
+cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
+enkat |>
+  filter(!is.na(subject)) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_12) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n)) |> 
+#  mutate(n_gr_total=sum(n)) |> 
+ # ungroup() |> 
+  #mutate(pct = n / n_gr_total) |>
+#  ungroup() |>
+  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ subject_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL,  title = "AI användning",
+       caption = str_wrap(cap,width=100),
+       subtitle = nlbl)  +
   theme_minimal() +
   theme(legend.position = "none")
 
