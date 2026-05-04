@@ -13,6 +13,7 @@ echo: false
 
 library(tidyverse)
 library(skimr)
+library(scales)
 
 ```
 
@@ -33,11 +34,112 @@ item_labels <- readRDS('Data/item_labels.rds')
 
 ```{r}
 #| label: skim
-enkat |>  skim()
+#enkat |>  skim()
 ```
 
+## Total time spent on this course
 
-## Sceduled time - as percentage of total course time
+
+For all 
+```{r}
+
+nlbl= paste0(" n = ", enkat |>count()) 
+enkat |>
+  count(Tid_totalt_timmar) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Tid_totalt_timmar, y = pct, fill = Tid_totalt_timmar)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = NULL, y = NULL,  title = "Total hours spent",
+       caption = str_wrap("Approximately, how many hours have you spent on your
+                          mathematics studies in this course totally the last week? 
+                          The question refers to the total time spent, 
+                          consisting of scheduled time as well as 
+                          self study.",width=120),
+       subtitle = nlbl)  +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+## Total time: Separate for 7.5 hp courses (50% pace) B2, Matstat etc
+
+```{r}
+nlbl= paste0(" n = ", 
+             enkat  |> filter(!is.na(course_gr)) |>count()) 
+
+enkat |>
+  filter(!is.na(course_gr)) |>
+#  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", 
+#  "Matstat LTH", "Matstat NF"))) |>
+  count(course_gr, Tid_totalt_timmar) |>
+  group_by(course_gr) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+  ggplot(aes(x = Tid_totalt_timmar, y = pct, fill = Tid_totalt_timmar)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, 
+                     expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ course_gr_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL, title = "Total study hours in this course",
+       caption = str_wrap("Approximately, how many hours have you spent on your
+                          mathematics studies in this course totally the last week? 
+                          The question refers to the total time spent, 
+                          consisting of scheduled time as well as 
+                          self study.",width=120),
+       ) +
+    theme_minimal(base_size=14) +
+  theme(legend.position = "none")
+ggsave("Figures/total_time_sel.emf",width=12,height=6)
+ggsave("Figures/total_time_sel.svg",width=12,height=6)
+
+```
+## Alt w stacked bars - separate for 7.5 hp courses
+
+```{r}
+plotdata <- enkat |>
+  filter(!is.na(course_gr)) |>
+#  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", 
+#  "Matstat LTH", "Matstat NF"))) |>
+  count(course_gr, Tid_totalt_timmar) |>
+  group_by(course_gr) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")")))
+
+plotdata |>
+  ggplot(aes(x =course_gr_lbl, y = pct, fill = Tid_totalt_timmar)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title="Total study hours",
+    x = NULL,
+    y = "Percent",
+    fill = NULL
+  ) +
+  scale_fill_viridis_d(
+    option = "D",
+ #   labels = c("Inte alls", "","","", "", "Fullständigt")
+  ) +
+  scale_x_discrete(drop = FALSE) +
+  guides(fill = guide_legend(nrow = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+   # legend.justification = "center",
+  #  legend.box.just = "top",
+    legend.direction = "horizontal"
+  )
+
+
+```
+(I prefer the standard bargraphs side by side)
+
+## Scheduled time - as percentage of total course time
 
 
 
@@ -55,13 +157,15 @@ enkat |>
   geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
-  labs(x = NULL, y = NULL,  title = "Andel Schemalagd tid",
+  labs(x = NULL, y = NULL,  
+       title = "Proportion scheduled time (of own total in this course)",
        caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50),
        subtitle = nlbl)  +
   theme_minimal() +
   theme(legend.position = "none")
 ```
 
+# Split by subject and faculty
 ```{r}
 enkat |>
   filter(!is.na(subject)) |>
@@ -77,18 +181,24 @@ enkat |>
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
   facet_wrap(~ subject_lbl, nrow = 2) +
-  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid",caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50)) +
-  theme_minimal() +
+  labs(x = NULL, y = NULL, 
+  title = "Proportion scheduled time (of own total in this course)",
+       caption = str_wrap("Approximately, what is the percentage 
+       of the total study time for this course 
+       that you have spent on scheduled activities the last week? 
+       Give an approximate answer in percentage. 
+       The rest of the time is assumed to be self study.",
+                          width=120)) +
+  theme_minimal() +  
   theme(legend.position = "none")
 ```
-### Separate for B2, Matstat etc
+## Separate for 7.5 hp courses (50% pace) B2, Matstat etc
 
 ```{r}
-
-
 enkat |>
   filter(!is.na(course_gr)) |>
-#  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+#  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", 
+#  "Matstat LTH", "Matstat NF"))) |>
   count(course_gr, Tid_schema_grp5) |>
   group_by(course_gr) |>
   mutate(pct = n / sum(n), n_total = sum(n)) |>
@@ -97,10 +207,18 @@ enkat |>
   ggplot(aes(x = Tid_schema_grp5, y = pct, fill = Tid_schema_grp5)) +
   geom_col() +
   geom_text(aes(label = n), vjust = -0.4, size = 3) +
-  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_y_continuous(labels = scales::percent, 
+                     expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
   facet_wrap(~ course_gr_lbl, nrow = 2) +
-  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid",caption = str_wrap(attr(enkat$Tid_schema_proc, "label"),width=50)) +
+  labs(x = NULL, y = NULL, 
+       title = "Proportion scheduled time (of own total in this course)",
+       caption = str_wrap("Approximately, what is the percentage 
+       of the total study time for this course 
+       that you have spent on scheduled activities the last week? 
+       Give an approximate answer in percentage. 
+       The rest of the time is assumed to be self study.",
+                          width=120)) +
   theme_minimal() +
   theme(legend.position = "none")
 
@@ -134,15 +252,22 @@ plotdata |>
     "Matte NF"    = "#41ab5d",
     "Matstat LTH" = "#238b45",
     "Matstat NF"  = "#005a32")) +
-  labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)", subtitle=nlbl,
-    caption = str_wrap(attr(enkat$Tid_schema_proc, "label"), width = 50)) +
-  theme_minimal() +
-  theme(legend.position = "none")
+  labs(x = NULL, y = NULL, title = "Proportion time on scheduled activities (%)", subtitle=nlbl,
+    caption = str_wrap("Approximately, what is the percentage 
+       of the total study time for this course 
+       that you have spent on scheduled activities the last week? 
+       Give an approximate answer in percentage. 
+       The rest of the time is assumed to be self study.",
+                          width=120)) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",plot.caption = element_text(size=10))
 
 ```
 
 
-### Selected courses 
+### 7.5 hp courses ( = pace 50 %)
+
+
 ```{r}
 #| label: violin_sel
 
@@ -171,9 +296,16 @@ plotdata |>
   #   "Matstat NF"  = "#005a32")) +
    scale_fill_brewer(palette = "Greens", direction = 1) +
   labs(x = NULL, y = NULL, title = "Andel Schemalagd tid (%)", subtitle=nlbl,
-    caption = str_wrap(attr(enkat$Tid_schema_proc, "label"), width = 50)) +
-  theme_minimal() +
+     caption = str_wrap("Approximately, what is the percentage 
+       of the total study time for this course 
+       that you have spent on scheduled activities the last week? 
+       Give an approximate answer in percentage. 
+       The rest of the time is assumed to be self study.",
+                          width=120)) +
+  theme_minimal(base_size=14) +
   theme(legend.position = "none")
+ggsave("Figures/violin_sel.emf",width=12,height=6)
+ggsave("Figures/violin_sel.svg",width=12,height=6)
 
 ```
 ## AI usage
@@ -192,13 +324,15 @@ enkat |>
   ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
   geom_col() +
   geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_x_discrete( labels = c("Never", "","","", "", "Always"))+
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
-  labs(x = NULL, y = NULL,  title = "AI användning",
-       caption = str_wrap(cap,width=50),
+  labs(x = NULL, y = NULL,  title = "AI use",
+       caption = str_wrap(cap,width=100),
        subtitle = nlbl)  +
-  theme_minimal() +
-  theme(legend.position = "none")
+  theme_minimal(base_size=15) +
+  theme(legend.position = "none",
+        plot.caption=element_text(size=10))
 
 ```
 
@@ -221,19 +355,25 @@ enkat |>
 #  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
   ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
   geom_col() +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  geom_text(aes(label = n), vjust = -0.4, size = 3) + 
+  scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
   facet_wrap(~ subject_lbl, nrow = 2) +
-  labs(x = NULL, y = NULL,  title = "AI användning",
+  labs(x = NULL, y = NULL,  title = "AI use",
        caption = str_wrap(cap,width=100),
        subtitle = nlbl)  +
-  theme_minimal() +
-  theme(legend.position = "none")
+  theme_minimal(base_size=14) +
+  theme(legend.position = "none",
+        plot.caption=element_text(size=10))
 
+
+
+ggsave("Figures/AI_use_subject.emf",width=12,height=6)
+ggsave("Figures/AI_use_subject.svg",width=12,height=6)
 ```
 
-## Reasons to study
+## Goals for studying mathematics
 
 ```{r}
 
@@ -258,7 +398,10 @@ plotdata= enkat |>
   count(Statement_f, value, .drop = FALSE) |>
   group_by(Statement_f) |> 
   mutate(percent = n / sum(n)) |> 
-      mutate(percent_full = max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
+      mutate(percent_full = 
+              # max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
+                max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
+
 
 plotdata |> 
   ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
@@ -278,6 +421,7 @@ plotdata |>
   ) +
   scale_x_discrete(drop = FALSE) +
   guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
+  theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
    # legend.justification = "center",
@@ -286,6 +430,8 @@ plotdata |>
   )
 
 
+ggsave("Figures/goals.emf",width=12,height=6)
+ggsave("Figures/goals.svg",width=12,height=6)
 
 ```
 
