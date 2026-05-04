@@ -97,7 +97,7 @@ df <- df |>
     str_starts(course_code, "MAS") ~ "Matstat NF"
   ) |> factor(),
   .after = course_code) |>
-  mutate(group = case_when(
+  mutate(course_gr = case_when(
     course_code == "FMAB70" &
       prog %in% c("Teknisk fysik", "Teknisk matematik", "Teknisk nanovetenskap") ~ 1L,
     course_code == "FMAB70"                                                       ~ 2L,
@@ -110,6 +110,12 @@ df <- df |>
                       "MATA32", "FMSF50/20", "MASA03")),
   .after = subject)
 
+## Add question formulations
+item_labels <- item_labels |> mutate(question = case_when(
+  str_starts(var, "Resurs_Likert") ~ "Hur ofta använder du var och en av resurserna nedan vid icke-schemalagda självstudier i kursen för att lära dig matematik? Gör dina bedömningar på en skala från 'Aldrig' till 'Alltid' där 'Alltid' betyder att resursen använts någon gång vid varje icke-schemalagt självstudietillfälle i denna kurs den senaste veckan.",
+  str_starts(var, "Resurs_Rank") ~ "Vänligen välj de fem resurser för ditt matematiklärande som du använt mest den senaste veckan när du studerat i denna kurs genom att markera i listan. Här avses alla typer av resurser, både sådana som tillhandahålls av universitetet och övriga.",
+  str_starts(var, "Resurs_Påstående") ~ "Markera i vilken grad du håller med om följande påståenden angående dina studier i denna kurs"
+)
 
 
 saveRDS(df,'Data/enkat.rds')
