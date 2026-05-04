@@ -111,10 +111,11 @@ df <- df |>
   .after = subject)
 
 ## Add question formulations
-item_labels <- item_labels |> mutate(question = case_when(
+item_labels <- item_labels |> 
+  mutate(question = case_when(
   str_starts(var, "Resurs_Likert") ~ "Hur ofta använder du var och en av resurserna nedan vid icke-schemalagda självstudier i kursen för att lära dig matematik? Gör dina bedömningar på en skala från 'Aldrig' till 'Alltid' där 'Alltid' betyder att resursen använts någon gång vid varje icke-schemalagt självstudietillfälle i denna kurs den senaste veckan.",
   str_starts(var, "Resurs_Rank") ~ "Vänligen välj de fem resurser för ditt matematiklärande som du använt mest den senaste veckan när du studerat i denna kurs genom att markera i listan. Här avses alla typer av resurser, både sådana som tillhandahålls av universitetet och övriga.",
-  str_starts(var, "Resurs_Påstående") ~ "Markera i vilken grad du håller med om följande påståenden angående dina studier i denna kurs"
+  str_starts(var, "Resurs_Påstående") ~ "Markera i vilken grad du håller med om följande påståenden angående dina studier i denna kurs")
 )
 
 
