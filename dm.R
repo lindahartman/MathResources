@@ -4,12 +4,19 @@ library(haven)
 library(readxl)
 
 df0 <- read_sav("Data/export.sav")
+df0_eng <- read_sav("Data/export_eng.sav")
 
 # Item label lookups from Excel codebook (named vector: name = varname, value = label)
 item_labels <- read_excel("Data/enkat_export.xlsx") |>
   filter(str_detect(`Variable Name`, "^VAR0[567]_")) |>
   mutate(item = str_extract(Label, "(?<= - ).+$")) |>
   select(var0 = `Variable Name`, item)
+
+item_labels_eng <- read_excel("Data/enkat_export_eng.xlsx") |>
+  filter(str_detect(`Variable Name`, "^VAR0[567]_")) |>
+  mutate(item_eng = str_extract(Label, "(?<= - ).+$")) |>
+  select(var0 = `Variable Name`, item_eng)
+item_labels <- item_labels |> left_join(item_labels_eng)
 
 var05_labels <- item_labels |> filter(startsWith(var0, "VAR05")) |>
   mutate(var = str_replace(var0, "^VAR05_", "Resurs_Likert_")) |> select(var, item) |> deframe()
@@ -20,6 +27,9 @@ var07_labels <- item_labels |> filter(startsWith(var0, "VAR07")) |>
 
 likert_05 <- c(Aldrig = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Alltid = 6)
 likert_07 <- c(`Inte alls` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Fullständigt = 6)
+likert_05_eng <- c(Never = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Always = 6)
+likert_07 <- c(`Not at all` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Completely = 6)
+
 
 df <- df0 |>
   #Alltid was coded 0, should be 6 (to be more than 5)
@@ -78,7 +88,7 @@ item_labels <- item_labels |>
     str_replace("^VAR06_", "Resurs_Rank_")     |>
     str_replace("^VAR07_", "Påstående_")
   ) |> 
-  select(var,item,var0)
+  select(var,item,item_eng,var0)
 
 # Add factor versions
 df <- df |>
