@@ -233,3 +233,59 @@ enkat |>
 
 ```
 
+## Reasons to study
+
+```{r}
+
+past_lbl=item_labels |> select(var,item) |> 
+filter(str_starts(var,"Påstående")) |> 
+    filter(parse_number(var)!=13) |> 
+  mutate(
+    item = item |>
+      str_remove("^Jag studerar för att\\s*") |>
+      str_to_sentence(locale = "sv")
+  ) |> pull(item)
+
+
+
+plotdata= enkat |> 
+  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
+  pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
+  filter(parse_number(Statement)!=13,!is.na(value)) |> 
+  mutate(Statement_f = 
+    factor(parse_number(Statement), ordered = TRUE,
+                            labels = str_wrap(past_lbl,width=25))) |> 
+  count(Statement_f, value, .drop = FALSE) |>
+  group_by(Statement_f) |> 
+  mutate(percent = n / sum(n)) |> 
+      mutate(percent_full = max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
+
+plotdata |> 
+  ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
+             y = percent, 
+             fill = value)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title="Jag studerar för att...",
+    x = NULL,
+    y = "Procent",
+    fill = NULL
+  ) +
+  scale_fill_viridis_d(
+    option = "D",
+    labels = c("Inte alls", "","","", "", "Fullständigt")
+  ) +
+  scale_x_discrete(drop = FALSE) +
+  guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+   # legend.justification = "center",
+  #  legend.box.just = "top",
+    legend.direction = "horizontal"
+  )
+
+
+
+```
+
