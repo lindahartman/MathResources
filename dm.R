@@ -112,10 +112,17 @@ df <- df |>
 
 ## Add question formulations
 item_labels <- item_labels |> 
-  mutate(question = case_when(
+  mutate(fraga = case_when(
   str_starts(var, "Resurs_Likert") ~ "Hur ofta använder du var och en av resurserna nedan vid icke-schemalagda självstudier i kursen för att lära dig matematik? Gör dina bedömningar på en skala från 'Aldrig' till 'Alltid' där 'Alltid' betyder att resursen använts någon gång vid varje icke-schemalagt självstudietillfälle i denna kurs den senaste veckan.",
   str_starts(var, "Resurs_Rank") ~ "Vänligen välj de fem resurser för ditt matematiklärande som du använt mest den senaste veckan när du studerat i denna kurs genom att markera i listan. Här avses alla typer av resurser, både sådana som tillhandahålls av universitetet och övriga.",
-  str_starts(var, "Resurs_Påstående") ~ "Markera i vilken grad du håller med om följande påståenden angående dina studier i denna kurs")
+  str_starts(var, "Resurs_Påstående") ~ "Markera i vilken grad du håller med om följande påståenden angående dina studier i denna kurs"
+  ),
+  question = case_when(
+    str_starts(var, "Resurs_Likert") ~ "How often do you use each of the resources below in your unscheduled sessions of self-study for learning mathematics for this course? Make a judgement on a scale from 'Never' to 'Always', where 'Always' means that the resource has been used at least once during every self study session for this course the last week.",
+    str_starts(var, "Resurs_Rank") ~ "	Please choose the five resources for your learning in mathematics that you have used the most the last week when you have studied for this course, by marking them in the list. Here we mean all types of resources, the ones provided by the university as well as other resources.",
+    str_starts(var, "Resurs_Påstående") ~ "How often do you use each of the resources below in your unscheduled sessions of self-study for learning mathematics for this course? Make a judgement on a scale from 'Never' to 'Always', where 'Always' means that the resource has been used at least once during every self study session for this course the last week."
+  )
+  
 )
 
 
