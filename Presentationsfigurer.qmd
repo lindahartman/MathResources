@@ -559,3 +559,96 @@ nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n))
 
 ```
 
+## Resurser  - Andel på nivå 5 och 6
+```{r}
+# 
+# enkat |> count(course_gr,Resurs_Likert_1_bin) |>
+#   filter(!is.na(Resurs_Likert_1_bin)) |> 
+#   group_by(course_gr) |>
+#   mutate(total=sum(n),pct=n/total)
+
+item_short <- c(
+  Resurs_Likert_1  = "Course literature",
+  Resurs_Likert_2  = "Videos LU teachers",
+  Resurs_Likert_3  = "Videos other uni",
+  Resurs_Likert_4  = "Videos non-uni",
+  Resurs_Likert_5  = "Study friends",
+  Resurs_Likert_6  = "Family/friends",
+  Resurs_Likert_7  = "Lecture notes",
+  Resurs_Likert_8  = "Old exams",
+  Resurs_Likert_9  = "Discussion forum",
+  Resurs_Likert_10 = "Other Canvas material",
+  Resurs_Likert_11 = "Google/Wikipedia",
+  Resurs_Likert_12 = "Generative AI",
+  Resurs_Likert_13 = "Wolfram/GeoGebra/Desmos",
+  Resurs_Likert_14 = "Python/R/Matlab",
+  Resurs_Likert_15 = "Mozquizto",
+  Resurs_Likert_16 = "Own lecture notes",
+  Resurs_Likert_17 = "Other student's notes",
+  Resurs_Likert_18 = "tekniskfysik.org",
+  Resurs_Likert_19 = "Library",
+  Resurs_Likert_20 = "Frågeforum (MC)",
+  Resurs_Likert_21 = "Other online forum",
+  Resurs_Likert_22 = "Email to teacher",
+  Resurs_Likert_23 = "Other resource 1",
+  Resurs_Likert_24 = "Other resource 2"
+)
+
+
+course_n <- enkat |> 
+  filter(!is.na(course_gr)) |>
+  count(course_gr) |>
+  deframe()
+
+
+plotdata <- enkat |>
+  pivot_longer(
+    matches("^Resurs_Likert_\\d+_bin$"),
+    names_to  = "item",
+    values_to = "bin"
+  ) |>
+  filter(item %in% paste0("Resurs_Likert_", 
+                          c(1, 2, 5, 8, 12, 16, 18),
+                          "_bin")) |>
+  filter(!is.na(bin), !is.na(course_gr)) |>
+  count(course_gr, item, bin) |>
+  group_by(course_gr, item) |>
+  mutate(total = sum(n), pct = n / total) |>
+  ungroup() |>
+  mutate(course_gr = fct_relabel(course_gr, \(x) paste0(x, " (n=", course_n[x], ")"))) |> 
+  filter(bin=="Ofta") |> 
+  mutate(item_label = item_short[
+    str_remove(item, "_bin$")
+    ]) 
+  
+  overall <- plotdata |>
+    summarise(n = sum(n), total = sum(total), .by = item_label) |>
+    mutate(pct = n / total,
+           course_gr = factor("Overall", levels = c(levels(plotdata$course_gr), "Overall")))
+
+  plotdata_full <- bind_rows(
+    plotdata |> mutate(course_gr = fct_expand(course_gr, "Overall")),
+    overall
+  )
+
+  plotdata_full |>
+    filter(course_gr != "Overall") |>
+    arrange(course_gr) |>
+    ggplot(aes(x=pct, y=course_gr, color=item_label, group=item_label)) +
+    geom_path() +
+    geom_jitter(size=3, width=0.02, height=0, alpha=0.8) +
+    geom_point(
+      data = filter(plotdata_full, course_gr == "Overall"),
+      shape = 18, size = 4
+    ) +
+    labs(title='Common resources', x = "Percentage", y = "Course", color = NULL) +
+    scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
+    scale_y_discrete(limits = rev, drop = FALSE) +
+    theme_minimal(base_size = 15)
+  
+  
+
+ggsave("Figures/resources_high.emf",width=9,height=6)
+ggsave("Figures/resources_high.svg",width=9,height=6)
+```
+
