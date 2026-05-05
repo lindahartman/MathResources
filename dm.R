@@ -2,6 +2,14 @@
 library(tidyverse)
 library(haven)
 library(readxl)
+#library(forcats)
+
+collapse_top2 <- function(x) {
+  fct_collapse(x,
+               Ofta = c("Med++", "Alltid"),
+               other_level    = "Övriga"
+  )
+}
 
 df0 <- read_sav("Data/export.sav")
 df0_eng <- read_sav("Data/export_eng.sav")
@@ -119,6 +127,18 @@ df <- df |>
            labels = c("B2 (F,pi,Nano)", "B2 (övriga)",
                       "MATA32", "FMSF50/20", "MASA03")),
   .after = subject)
+
+
+df <- df |>
+  mutate(across(
+    starts_with("Resurs_Likert"),
+    collapse_top2,
+    .names = "{.col}_bin"
+  ))
+
+df |> select(Resurs_Likert_1, Resurs_Likert_1_bin) |> 
+  count(Resurs_Likert_1, Resurs_Likert_1_bin)
+
 
 ## Add question formulations
 item_labels <- item_labels |> 
