@@ -5,6 +5,8 @@ format:
   html:
     embed-resources: true
 echo: false
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
@@ -323,7 +325,7 @@ enkat |>
 #  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
   ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
   geom_col() +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  #geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_x_discrete( labels = c("Never", "","","", "", "Always"))+
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
@@ -339,10 +341,12 @@ enkat |>
 
 Per subject
 ```{r}
-nlbl= paste0(" n = ", enkat |>count()) 
+nlbl= paste0("n = ", enkat|> 
+               filter(!is.na(subject),!is.na(Resurs_Likert_12)) |>
+               count()) 
 cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
-enkat |>
-  filter(!is.na(subject)) |>
+enkat  |> select(Resurs_Likert_12,subject) |>
+  filter(!is.na(subject),!is.na(Resurs_Likert_12)) |>
   mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
   count(subject, Resurs_Likert_12) |>
   group_by(subject) |> 
@@ -354,8 +358,8 @@ enkat |>
   mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>
 #  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
   ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
-  geom_col() +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) + 
+  geom_col(position=position_stack()) +
+  #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
   scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
@@ -363,7 +367,7 @@ enkat |>
   labs(x = NULL, y = NULL,  title = "AI use",
        caption = str_wrap(cap,width=100),
        subtitle = nlbl)  +
-  theme_minimal(base_size=14) +
+  theme_minimal(base_size=15) +
   theme(legend.position = "none",
         plot.caption=element_text(size=10))
 
@@ -372,6 +376,106 @@ enkat |>
 ggsave("Figures/AI_use_subject.emf",width=12,height=6)
 ggsave("Figures/AI_use_subject.svg",width=12,height=6)
 ```
+
+```{r}
+
+enkat_sel <- enkat |> filter(!is.na(subject),!is.na(Resurs_Likert_1),
+                             !is.na(Resurs_Likert_12),!is.na(Resurs_Likert_18))
+
+plotdata_1 <- enkat_sel  |> select(Resurs_Likert_1,subject) |>
+  mutate(subject = factor(subject, 
+                          levels = c("Matte LTH", "Matte NF", 
+                                     "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_1) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n), var='Course Lit') |> 
+#  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |> 
+  rename(level=Resurs_Likert_1)
+
+plotdata_12 <- enkat_sel  |> select(Resurs_Likert_12,Resurs_Likert_1,subject) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_12) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n), var='AI use') |> 
+#  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>  
+  rename(level=Resurs_Likert_12)
+
+plotdata_18 <- enkat_sel  |> select(Resurs_Likert_18,Resurs_Likert_1,subject) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_18) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n), var='tekniskfysik.org') |> 
+#  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |> 
+  rename(level=Resurs_Likert_18)
+
+
+plotdata <- plotdata_1 |> bind_rows(plotdata_12) |> bind_rows(plotdata_18) |> 
+    mutate(subject_lbl = fct_inorder(paste0(subject, "\n (n = ", n_gr_total, ")"))) 
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+
+plotdata |> 
+  ggplot(aes(x = var, y = pct, fill = level )) +
+  geom_col(position=position_stack()) +
+  geom_hline(yintercept = 0.5) +
+  #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
+ # scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1,labels = c("Never", "","","", "", "Always")) +
+  facet_wrap(~ subject_lbl, nrow = 1) +
+  labs(x = NULL, y = NULL,
+       title = 'Use of resources for self-study',
+       caption = str_wrap(cap,width=100),
+     #  subtitle = nlbl,
+       fill="How often\n last week?")  +
+  theme_minimal(base_size=15) +
+  theme(#legend.position = "none",
+    axis.text.x=element_text(angle=45,hjust=1),
+        plot.caption=element_text(size=10))
+
+
+ggsave("Figures/AICLTF_use_subject.emf",width=12,height=6)
+ggsave("Figures/AICLTF_use_subject.svg",width=12,height=6)
+```
+
+## Course literature
+Per subject
+```{r}
+nlbl= paste0("n = ", enkat|> 
+               filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
+               count()) 
+cap=item_labels |> filter(var=="Resurs_Likert_1") |> pull(question)
+enkat |> select(Resurs_Likert_1,subject) |> 
+  filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_1) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n)) |> 
+#  mutate(n_gr_total=sum(n)) |> 
+ # ungroup() |> 
+  #mutate(pct = n / n_gr_total) |>
+#  ungroup() |>
+  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Resurs_Likert_1, y = pct, fill = Resurs_Likert_1)) +
+  geom_col() +
+  #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
+  scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ subject_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL,  title = "Course Literature",
+       caption = str_wrap(cap,width=100),
+       subtitle = nlbl)  +
+  theme_minimal(base_size=15) +
+  theme(legend.position = "none",
+        plot.caption=element_text(size=10))
+
+
+
+ggsave("Figures/CL_use_subject.emf",width=12,height=6)
+ggsave("Figures/CL_use_subject.svg",width=12,height=6)
+```
+
 
 ## Goals for studying mathematics
 
@@ -433,5 +537,28 @@ plotdata |>
 ggsave("Figures/goals.emf",width=12,height=6)
 ggsave("Figures/goals.svg",width=12,height=6)
 
+```
+
+## Attendance at scheduled teaching
+### Lectures
+Attendance at lectures last week 
+```{r}
+nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
+
+  enkat |> filter(!is.na(course_gr)) |> 
+  ggplot(aes(x=Tid_uppd_timmar_1)) + 
+  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+                  fill = 'darkgreen', alpha = 0.7,color='black') + 
+    facet_wrap(~course_gr,scales='free_y')+
+  labs(title = 'Attended Lectures',
+       subtitle = paste0('7.5 hp courses, ',nlbl),
+
+             x = "Time (hours)") +
+  theme_minimal(base_size=15) 
+                
+
+
+ggsave("Figures/hist_lect.emf",width=12,height=6)
+ggsave("Figures/hist_lect.svg",width=12,height=6)
 ```
 
