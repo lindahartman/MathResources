@@ -16,7 +16,7 @@ editor_options:
 library(tidyverse)
 library(skimr)
 library(scales)
-
+library(patchwork)
 ```
 
 ## Data
@@ -45,15 +45,15 @@ item_labels <- readRDS('Data/item_labels.rds')
 For all 
 ```{r}
 
-nlbl= paste0(" n = ", enkat |>count()) 
-enkat |>
+nlbl_all= paste0(" n = ", enkat |>count()) 
+p_total_all <- enkat |>
   count(Tid_totalt_timmar) |>
   mutate(pct = n / sum(n), n_total = sum(n)) |>
   ungroup() |>
 #  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
   ggplot(aes(x = Tid_totalt_timmar, y = pct, fill = Tid_totalt_timmar)) +
-  geom_col() +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  geom_col(color="black") +
+#  geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
   labs(x = NULL, y = NULL,  title = "Total hours spent",
@@ -62,17 +62,19 @@ enkat |>
                           The question refers to the total time spent, 
                           consisting of scheduled time as well as 
                           self study.",width=120),
-       subtitle = nlbl)  +
-  theme_minimal() +
+       subtitle = nlbl_all)  +
+  theme_minimal(base_size=14) +
   theme(legend.position = "none")
+p_total_all
 ```
 ## Total time: Separate for 7.5 hp courses (50% pace) B2, Matstat etc
 
 ```{r}
+
 nlbl= paste0(" n = ", 
              enkat  |> filter(!is.na(course_gr)) |>count()) 
 
-enkat |>
+p_total_sel <- enkat |>
   filter(!is.na(course_gr)) |>
 #  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", 
 #  "Matstat LTH", "Matstat NF"))) |>
@@ -82,8 +84,8 @@ enkat |>
   ungroup() |>
   mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
   ggplot(aes(x = Tid_totalt_timmar, y = pct, fill = Tid_totalt_timmar)) +
-  geom_col() +
-  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  geom_col(color='black') +
+ # geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_y_continuous(labels = scales::percent, 
                      expand = expansion(mult = c(0, .12))) +
   scale_fill_brewer(palette = "Greens", direction = 1) +
@@ -97,6 +99,17 @@ enkat |>
        ) +
     theme_minimal(base_size=14) +
   theme(legend.position = "none")
+
+p_total_sel +
+  inset_element(
+    p_total_all + labs(caption = NULL, 
+                       title=paste0('All respondents, ',nlbl_all),
+                       subtitle=NULL) + theme_gray(base_size = 12) + 
+      theme(legend.position = "none"),
+    left = 0.68, bottom = 0, right = 1.01, top = 0.45,
+    align_to = "plot"
+  )
+
 ggsave("Figures/total_time_sel.emf",width=12,height=6)
 ggsave("Figures/total_time_sel.svg",width=12,height=6)
 
@@ -316,15 +329,16 @@ Results from VAR05_12 "Generativ AI (t ex Copilot, ChatGPT)"
 
 ### All answers
 ```{r}
-nlbl= paste0(" n = ", enkat |>count()) 
+nlbl= paste0(" n = ", enkat |> filter(!is.na(Resurs_Likert_12)) |> count()) 
 cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
 enkat |>
+  filter(!is.na(Resurs_Likert_12)) |>
   count(Resurs_Likert_12) |>
   mutate(pct = n / sum(n), n_total = sum(n)) |>
   ungroup() |>
 #  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
   ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
-  geom_col() +
+  geom_col(color='black') +
   #geom_text(aes(label = n), vjust = -0.4, size = 3) +
   scale_x_discrete( labels = c("Never", "","","", "", "Always"))+
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
@@ -336,10 +350,14 @@ enkat |>
   theme(legend.position = "none",
         plot.caption=element_text(size=10))
 
+
+ggsave("Figures/AI_use_all.emf",width=12,height=6)
+ggsave("Figures/AI_use_all.svg",width=12,height=6)
+
 ```
 
 
-Per subject
+### Per subject
 ```{r}
 nlbl= paste0("n = ", enkat|> 
                filter(!is.na(subject),!is.na(Resurs_Likert_12)) |>
@@ -416,7 +434,7 @@ plotdata <- plotdata_1 |> bind_rows(plotdata_12) |> bind_rows(plotdata_18) |>
 plotdata |> 
   ggplot(aes(x = var, y = pct, fill = level )) +
   geom_col(position=position_stack()) +
-  geom_hline(yintercept = 0.5) +
+  geom_hline(yintercept = 0.5, linetype='dashed') +
   #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
  # scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
@@ -437,133 +455,7 @@ ggsave("Figures/AICLTF_use_subject.emf",width=12,height=6)
 ggsave("Figures/AICLTF_use_subject.svg",width=12,height=6)
 ```
 
-## Course literature
-Per subject
-```{r}
-nlbl= paste0("n = ", enkat|> 
-               filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
-               count()) 
-cap=item_labels |> filter(var=="Resurs_Likert_1") |> pull(question)
-enkat |> select(Resurs_Likert_1,subject) |> 
-  filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
-  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
-  count(subject, Resurs_Likert_1) |>
-  group_by(subject) |> 
-  mutate(pct=n/sum(n),n_gr_total=sum(n)) |> 
-#  mutate(n_gr_total=sum(n)) |> 
- # ungroup() |> 
-  #mutate(pct = n / n_gr_total) |>
-#  ungroup() |>
-  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>
-#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
-  ggplot(aes(x = Resurs_Likert_1, y = pct, fill = Resurs_Likert_1)) +
-  geom_col() +
-  #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
-  scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
-  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
-  scale_fill_brewer(palette = "Greens", direction = 1) +
-  facet_wrap(~ subject_lbl, nrow = 2) +
-  labs(x = NULL, y = NULL,  title = "Course Literature",
-       caption = str_wrap(cap,width=100),
-       subtitle = nlbl)  +
-  theme_minimal(base_size=15) +
-  theme(legend.position = "none",
-        plot.caption=element_text(size=10))
-
-
-
-ggsave("Figures/CL_use_subject.emf",width=12,height=6)
-ggsave("Figures/CL_use_subject.svg",width=12,height=6)
-```
-
-
-## Goals for studying mathematics
-
-```{r}
-
-past_lbl=item_labels |> select(var,item) |> 
-filter(str_starts(var,"Påstående")) |> 
-    filter(parse_number(var)!=13) |> 
-  mutate(
-    item = item |>
-      str_remove("^Jag studerar för att\\s*") |>
-      str_to_sentence(locale = "sv")
-  ) |> pull(item)
-
-
-
-plotdata= enkat |> 
-  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
-  pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
-  filter(parse_number(Statement)!=13,!is.na(value)) |> 
-  mutate(Statement_f = 
-    factor(parse_number(Statement), ordered = TRUE,
-                            labels = str_wrap(past_lbl,width=25))) |> 
-  count(Statement_f, value, .drop = FALSE) |>
-  group_by(Statement_f) |> 
-  mutate(percent = n / sum(n)) |> 
-      mutate(percent_full = 
-              # max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
-                max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
-
-
-plotdata |> 
-  ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
-             y = percent, 
-             fill = value)) +
-  geom_col(position = position_stack(reverse = TRUE)) +
-  scale_y_continuous(labels = percent) +
-  labs(
-    title="Jag studerar för att...",
-    x = NULL,
-    y = "Procent",
-    fill = NULL
-  ) +
-  scale_fill_viridis_d(
-    option = "D",
-    labels = c("Inte alls", "","","", "", "Fullständigt")
-  ) +
-  scale_x_discrete(drop = FALSE) +
-  guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
-  theme_minimal(base_size = 14) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "bottom",
-   # legend.justification = "center",
-  #  legend.box.just = "top",
-    legend.direction = "horizontal"
-  )
-
-
-ggsave("Figures/goals.emf",width=12,height=6)
-ggsave("Figures/goals.svg",width=12,height=6)
-
-```
-
-## Attendance at scheduled teaching
-### Lectures
-Attendance at lectures last week 
-```{r}
-nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
-
-  enkat |> filter(!is.na(course_gr)) |> 
-  ggplot(aes(x=Tid_uppd_timmar_1)) + 
-  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
-
-                  fill = 'darkgreen', alpha = 0.7,color='black') + 
-    facet_wrap(~course_gr,scales='free_y')+
-  labs(title = 'Attended Lectures',
-       subtitle = paste0('7.5 hp courses, ',nlbl),
-
-             x = "Time (hours)") +
-  theme_minimal(base_size=15) 
-                
-
-
-ggsave("Figures/hist_lect.emf",width=12,height=6)
-ggsave("Figures/hist_lect.svg",width=12,height=6)
-```
-
-## Resurser  - Andel på nivå 5 och 6
+### Resurser  - Andel på nivå 5 och 6
 ```{r}
 # 
 # enkat |> count(course_gr,Resurs_Likert_1_bin) |>
@@ -639,15 +531,20 @@ plotdata <- enkat |>
     filter(course_gr != "Overall") |>
     arrange(course_gr) |>
     ggplot(aes(x=pct, y=course_gr, color=item_label, group=item_label)) +
-    geom_path() +
-    geom_jitter(size=3, width=0.02, height=0, alpha=0.8) +
+    geom_path(alpha=0.7, linewidth=1.2) +
+    geom_jitter(size=5, width=0.005, height=0, alpha=0.8) +
     geom_point(
       data = filter(plotdata_full, course_gr == "Overall"),
-      shape = 18, size = 4
+      shape = 18, size = 8
     ) +
-    labs(title='Common resources', x = "Percentage", y = "Course", color = NULL) +
+    labs(title='Commonly used self study resources', 
+         x = "Percentage for level 5+6 (1_ Never, 6 = Always)", 
+         y = NULL, 
+         color = NULL,
+         ) +
     scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
-    scale_y_discrete(limits = rev, drop = FALSE) +
+    scale_y_discrete(limits = c(rev(levels(plotdata$course_gr)), "Overall"), 
+                     drop = FALSE) +
     theme_minimal(base_size = 15)
   
   
@@ -655,4 +552,253 @@ plotdata <- enkat |>
 ggsave("Figures/resources_high.emf",width=9,height=6)
 ggsave("Figures/resources_high.svg",width=9,height=6)
 ```
+
+
+
+
+## Course literature
+Per subject
+```{r}
+nlbl= paste0("n = ", enkat|> 
+               filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
+               count()) 
+cap=item_labels |> filter(var=="Resurs_Likert_1") |> pull(question)
+enkat |> select(Resurs_Likert_1,subject) |> 
+  filter(!is.na(subject),!is.na(Resurs_Likert_1)) |>
+  mutate(subject = factor(subject, levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF"))) |>
+  count(subject, Resurs_Likert_1) |>
+  group_by(subject) |> 
+  mutate(pct=n/sum(n),n_gr_total=sum(n)) |> 
+#  mutate(n_gr_total=sum(n)) |> 
+ # ungroup() |> 
+  #mutate(pct = n / n_gr_total) |>
+#  ungroup() |>
+  mutate(subject_lbl = fct_inorder(paste0(subject, " (n = ", n_gr_total, ")"))) |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Resurs_Likert_1, y = pct, fill = Resurs_Likert_1)) +
+  geom_col() +
+  #geom_text(aes(label = n), vjust = -0.4, size = 3) + 
+  scale_x_discrete( labels = c("Never", "","","", "", "Always")) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  facet_wrap(~ subject_lbl, nrow = 2) +
+  labs(x = NULL, y = NULL,  title = "Course Literature",
+       caption = str_wrap(cap,width=100),
+       subtitle = nlbl)  +
+  theme_minimal(base_size=15) +
+  theme(legend.position = "none",
+        plot.caption=element_text(size=10))
+
+
+
+ggsave("Figures/CL_use_subject.emf",width=12,height=6)
+ggsave("Figures/CL_use_subject.svg",width=12,height=6)
+```
+
+
+
+
+## Goals for studying mathematics
+
+```{r}
+
+past_lbl=item_labels |> select(var,item) |> 
+filter(str_starts(var,"Påstående")) |> 
+    filter(parse_number(var)!=13) |> 
+  mutate(
+    item = item |>
+      str_remove("^Jag studerar för att\\s*") |>
+      str_to_sentence(locale = "sv")
+  ) |> pull(item)
+
+past_lbl <- str_wrap(past_lbl,width=30)
+past_lbl[6] <- "Öka min förmåga att\ntillämpa matematik."
+past_lbl[12] <- "Kursen ingår i\nexamen jag vill ta ut"
+
+plotdata= enkat |> 
+  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
+  pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
+  filter(parse_number(Statement)!=13,!is.na(value)) |> 
+  mutate(Statement_f = 
+    factor(parse_number(Statement), ordered = TRUE,
+                            labels = past_lbl)) |> 
+  count(Statement_f, value, .drop = FALSE) |>
+  group_by(Statement_f) |> 
+  mutate(percent = n / sum(n)) |> 
+      mutate(percent_full = 
+              # max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
+                max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
+
+
+plotdata |> 
+  ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
+             y = percent, 
+             fill = value)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title="Jag studerar för att...",
+    x = NULL,
+    y = "Procent",
+    fill = NULL
+  ) +
+  scale_fill_viridis_d(
+    option = "D",
+    labels = c("Inte alls", "","","", "", "Fullständigt")
+  ) +
+  scale_x_discrete(drop = FALSE) +
+  guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=14),
+    legend.position = "bottom",
+   # legend.justification = "center",
+  #  legend.box.just = "top",
+    legend.direction = "horizontal",
+    plot.margin = margin(5.5, 5.5, 5.5, 30)
+  )
+
+
+ggsave("Figures/goals.emf",width=13,height=6)
+ggsave("Figures/goals.svg",width=13,height=6)
+
+```
+
+## Attendance at scheduled teaching
+### Lectures
+Attendance at lectures last week 
+```{r}
+nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
+
+  enkat |> filter(!is.na(course_gr)) |>
+  add_count(course_gr, name = "n_total") |>
+  arrange(course_gr) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+  ggplot(aes(x=Tid_uppd_timmar_1)) + 
+  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+
+                  fill = 'darkgreen', alpha = 0.7,color='black') + 
+    facet_wrap(~course_gr_lbl,scales='free_y')+
+  labs(title = 'Attended Lectures',
+       subtitle = paste0('7.5 hp courses, ',nlbl),
+
+             x = "Time (hours)") +
+  theme_minimal(base_size=15) 
+                
+
+
+ggsave("Figures/hist_lect.emf",width=12,height=6)
+ggsave("Figures/hist_lect.svg",width=12,height=6)
+```
+### Exercises
+Attendance at lectures last week 
+```{r}
+nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
+
+  enkat |> filter(!is.na(course_gr)) |>
+  add_count(course_gr, name = "n_total") |>
+  arrange(course_gr) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+  ggplot(aes(x=Tid_uppd_timmar_3)) + 
+  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+
+                  fill = 'darkgreen', alpha = 0.7,color='black') + 
+    facet_wrap(~course_gr_lbl,scales='free_y')+
+  labs(title = 'Attended Exercise sessions',
+       subtitle = paste0('7.5 hp courses, ',nlbl),
+
+             x = "Time (hours)") +
+  theme_minimal(base_size=15) 
+                
+
+
+ggsave("Figures/hist_exc.emf",width=12,height=6)
+ggsave("Figures/hist_exc.svg",width=12,height=6)
+```
+
+### Exercises exercises+seminars last week 
+```{r}
+nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
+
+  enkat |> filter(!is.na(course_gr)) |>
+  add_count(course_gr, name = "n_total") |>
+  arrange(course_gr) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+    mutate(Tid_uppd_timmar_23=Tid_uppd_timmar_2+Tid_uppd_timmar_3) |> 
+  ggplot(aes(x=Tid_uppd_timmar_23)) + 
+  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+
+                  fill = 'darkgreen', alpha = 0.7,color='black') + 
+    facet_wrap(~course_gr_lbl,scales='free_y') +
+  labs(title = 'Attended Exercise+seminar sessions',
+       subtitle = paste0('7.5 hp courses, ',nlbl),
+
+             x = "Time (hours)") +
+  theme_minimal(base_size=15) 
+                
+
+
+ggsave("Figures/hist_exc_sem.emf",width=12,height=6)
+ggsave("Figures/hist_exc_sem.svg",width=12,height=6)
+```
+
+### Seminars vs Exercise sessions (overlaid)
+```{r}
+nlbl <- paste0("n = ", enkat |> filter(!is.na(course_gr)) |> count() |> pull(n))
+
+enkat |>
+  filter(!is.na(course_gr)) |>
+  add_count(course_gr, name = "n_total") |>
+  arrange(course_gr) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+  pivot_longer(c(Tid_uppd_timmar_2, Tid_uppd_timmar_3),
+               names_to = "type", values_to = "hours") |>
+  mutate(type = recode(type,
+    Tid_uppd_timmar_2 = "Seminars",
+    Tid_uppd_timmar_3 = "Exercise sessions"
+  )) |>
+  ggplot(aes(x = hours, fill = type)) +
+  geom_histogram(
+    breaks = c(-0.5, 0.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5),
+    alpha = 0.6, color = "black", position = "identity"
+  ) +
+  facet_wrap(~ course_gr_lbl, scales = "free_y") +
+  labs(
+    title = "Attended Seminars vs Exercise sessions",
+    subtitle = paste0("7.5 hp courses, ", nlbl),
+    x = "Time (hours)", fill = NULL
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(legend.position = "bottom")
+
+ggsave("Figures/hist_sem_exc_overlay.emf", width = 12, height = 6)
+ggsave("Figures/hist_sem_exc_overlay.svg", width = 12, height = 6)
+```
+### All scheduled activities (except SI)
+```{r}
+nlbl=paste0("n = ",enkat |> filter(!is.na(course_gr)) |> count() |> pull(n)) 
+
+  enkat |> filter(!is.na(course_gr)) |>
+  add_count(course_gr, name = "n_total") |>
+  arrange(course_gr) |>
+  mutate(course_gr_lbl = fct_inorder(paste0(course_gr, " (n = ", n_total, ")"))) |>
+    mutate(Tid_uppd_timmar_all= Tid_uppd_timmar_1+Tid_uppd_timmar_2+Tid_uppd_timmar_3+
+             Tid_uppd_timmar_5+Tid_uppd_timmar_6) |> 
+  ggplot(aes(x=Tid_uppd_timmar_all)) + 
+  geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+
+                  fill = 'darkgreen', alpha = 0.7,color='black') + 
+    facet_wrap(~course_gr_lbl,scales='free_y') +
+  labs(title = 'Attended scheduled sessions',
+       subtitle = paste0('7.5 hp courses, ',nlbl),
+
+             x = "Time (hours)",
+       caption = "Lectures + Exercises + Semnars + Computer labs + Other") +
+  theme_minimal(base_size=15) 
+                
+
+
+ggsave("Figures/hist_all_scheduled.emf",width=12,height=6)
+ggsave("Figures/hist_all_scheduled.svg",width=12,height=6)
+```
+
 
