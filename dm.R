@@ -36,7 +36,7 @@ var07_labels <- item_labels |> filter(startsWith(var0, "VAR07")) |>
 likert_05 <- c(Aldrig = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Alltid = 6)
 likert_07 <- c(`Inte alls` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Fullständigt = 6)
 likert_05_eng <- c(Never = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Always = 6)
-likert_07 <- c(`Not at all` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Completely = 6)
+likert_07_eng <- c(`Not at all` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Completely = 6)
 
 
 df <- df0 |>
