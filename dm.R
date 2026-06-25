@@ -197,7 +197,34 @@ dfe <- df |>
     across(ends_with("_bin"),
            \(x) fct_recode(x, Often = "Ofta", Other = "Övriga")),
     across(starts_with("Påstående_"),
-           \(x) fct_recode(x, `Not at all` = "Inte alls", Completely = "Fullständigt"))
+           \(x) fct_recode(x, `Not at all` = "Inte alls", Completely = "Fullständigt")),
+    prog_eng = fct_recode(prog,
+      # LTH Civil Engineering programmes
+      "Engineering Physics"                       = "Teknisk fysik",
+      "Mechanical Engineering"                    = "Maskinteknik",
+      "Computer Science and Engineering"          = "Datateknik",
+      "Industrial Engineering and Management"     = "Industriell ekonomi",
+      "Electrical Engineering"                    = "Elektroteknik",
+      "Civil Engineering"                         = "Väg- och vattenbyggnad",
+      "Surveying and Land Management"             = "Lantmäteri",
+      "Biotechnology"                             = "Bioteknik",
+      "Environmental Engineering"                  = "Ekosystemteknik",
+      "Chemical Engineering"                      = "Kemiteknik",
+      "Engineering Mathematics"                   = "Teknisk matematik",
+      "Engineering Nanoscience"                   = "Teknisk nanovetenskap",
+      "Risk Management and Safety Engineering"    = "Risk, säkerhet och krishantering",
+      "Fire Protection Engineering"               = "Brandteknik",
+      "Biomedical Engineering"                    = "Medicin och teknik",
+      "Information and Communication Technology"  = "Informations- och kommunikationsteknik",
+      "Mechanical Engineering with Engineering Design" = "Maskinteknik med teknisk design",
+      # Faculty of Science programmes
+      "Bachelor's Programme in Mathematics"       = "Kandidatprogram i matematik",
+      "Bachelor's Programme in Physics"           = "Kandidatprogram i fysik",
+      # Other
+      "Stand-alone Course"                        = "Fristående kurs",
+      "Other Education"                           = "Annan utbildning:"
+    ),
+    .after = prog
   )
 
 saveRDS(df,'Data/enkat.rds')
