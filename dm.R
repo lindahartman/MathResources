@@ -156,7 +156,53 @@ item_labels <- item_labels |>
 )
 
 
+## Descriptive course table -------------------------------------------------
+course_n <- enkat |>
+  filter(!is.na(course_code)) |>
+  count(course_code, name = "n_students")
+
+course_table <- tribble(
+  ~course_code, ~course_name,                                                                ~course_name_abbr,    ~faculty,      ~subject,                   ~subject_abbr, ~year,  ~comments,
+  "FMAB50",     "Calculus in One Variable A2",                                               "Calculus 1A2",       "Engineering", "Mathematics",              "Math",        "1",    "",
+  "FMAB70",     "Calculus in One Variable B2",                                               "Calculus 1B2",       "Engineering", "Mathematics",              "Math",        "1",    "",
+  "FMSF20",     "Mathematical Statistics, Basic Course (for E and D)",                       "MathStat (E,D)",     "Engineering", "Mathematical Statistics",  "MathStat",    "3",    "",
+  "FMSF50",     "Mathematical Statistics, Basic Course (for L, V, Risk, Physics, Teachers)", "MathStat (L,V,…)",   "Engineering", "Mathematical Statistics",  "MathStat",    "3",    "",
+  "FMSF80",     "Mathematical Statistics, Basic Course (for F, I, Pi)",                      "MathStat (F,I,Pi)",  "Engineering", "Mathematical Statistics",  "MathStat",    "2",    "",
+  "MASA03",     "Mathematical Statistics, Basic Course (Faculty of Science)",                "MathStat (Sci)",     "Science",     "Mathematical Statistics",  "MathStat",    "1–3",  "",
+  "MASB13",     "Mathematical Statistics, Basic Course (for L, V, Risk, Physics, Teachers)", "MathStat (L,V,…) S", "Science",     "Mathematical Statistics",  "MathStat",    "1–3",  "",
+  "MATA31",     "Analysis in One Variable (Faculty of Science)",                             "Analysis 1V (Sci)",  "Science",     "Mathematics",              "Math",        "1",    "",
+  "MATA32",     "Algebra and Vector Geometry (Faculty of Science)",                          "Algebra & VG (Sci)", "Science",     "Mathematics",              "Math",        "1",    "",
+) |>
+  left_join(course_n, by = "course_code") |>
+  select(course_code, course_name, course_name_abbr, faculty, subject, subject_abbr,
+         year, n_students, comments)
+
+## English version of df ---------------------------------------------------
+dfe <- df |>
+  select(-course_name) |>
+  left_join(course_table |> select(course_code, course_name), by = "course_code") |>
+  relocate(course_name, .after = course_code) |>
+  mutate(
+    fakultet  = fct_recode(fakultet,
+                           Engineering = "LTH",
+                           Science     = "Nfak"),
+    subject   = fct_recode(subject,
+                           Mathematics              = "Matte LTH",
+                           Mathematics              = "Matte NF",
+                           `Mathematical Statistics` = "Matstat LTH",
+                           `Mathematical Statistics` = "Matstat NF"),
+    course_gr = fct_recode(course_gr, `B2 (others)` = "B2 (övriga)"),
+    across(starts_with("Resurs_Likert") & !ends_with("_bin"),
+           \(x) fct_recode(x, Never = "Aldrig", Always = "Alltid")),
+    across(ends_with("_bin"),
+           \(x) fct_recode(x, Often = "Ofta", Other = "Övriga")),
+    across(starts_with("Påstående_"),
+           \(x) fct_recode(x, `Not at all` = "Inte alls", Completely = "Fullständigt"))
+  )
+
 saveRDS(df,'Data/enkat.rds')
+saveRDS(dfe, 'Data/enkat_eng.rds')
 saveRDS(item_labels,'Data/item_labels.rds')
+saveRDS(course_table, 'Data/course_table.rds')
 
 rm(list=c("df","df0","item_labels","likert_05","likert_07","var05_labels","var06_labels","var07_labels"))
