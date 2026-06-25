@@ -29,7 +29,7 @@ Free text answers are not included here.
 ```{r}
 #| label: data
 
-enkat <- readRDS('Data/enkat.rds') |> select(-starts_with("VAR"))
+enkat_eng <- readRDS('Data/enkat_eng.rds') |> select(-starts_with("VAR"))
 item_labels <- readRDS('Data/item_labels.rds')
 
 ```
@@ -67,7 +67,7 @@ past_lbl[10] <- "Open my mind"
 past_lbl[11] <- "Prepare for future work"
 past_lbl[12] <- "Obtain my degree"
 
-plotdata= enkat |> 
+plotdata= enkat_eng |> 
   select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
   filter(parse_number(Statement)!=13,!is.na(value)) |> 
@@ -89,7 +89,8 @@ plotdata |>
   geom_col(position = position_stack(reverse = TRUE)) +
   scale_y_continuous(labels = percent) +
   labs(
-    title="I study to/because...",
+ #   title="I study to/because...",
+     title="I study to...",
     caption="To what degree do you agree with the following\nstatements about your studies in this course?",
     x = NULL,
    # y = "Percent",
