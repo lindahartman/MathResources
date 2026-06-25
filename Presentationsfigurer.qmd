@@ -39,7 +39,7 @@ item_labels <- readRDS('Data/item_labels.rds')
 #enkat |>  skim()
 ```
 
-## Total time spent on this course
+## Total hours spent on this course
 
 
 For all 
