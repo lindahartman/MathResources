@@ -1,0 +1,40 @@
+---
+title: "Resources for learning mathematics - results and figures for the publication"
+author: "Linda Hartman and Sara Maad Sasane"
+format: 
+  html:
+    embed-resources: true
+echo: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(skimr)
+library(scales)
+library(patchwork)
+```
+
+## Data
+
+Data from 585 respondents to a survey. Data was exported to SPSS and cleaned in script `dm.R`. 
+
+Free text answers are not included here.
+
+
+```{r}
+#| label: data
+
+enkat <- readRDS('Data/enkat.rds') |> select(-starts_with("VAR"))
+item_labels <- readRDS('Data/item_labels.rds')
+
+```
+
+```{r}
+#| label: skim
+#enkat |>  skim()
+```
