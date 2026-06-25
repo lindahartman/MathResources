@@ -38,3 +38,81 @@ item_labels <- readRDS('Data/item_labels.rds')
 #| label: skim
 #enkat |>  skim()
 ```
+
+
+## Goals for studying mathematics
+
+```{r}
+
+past_lbl=item_labels |> select(var,item_eng) |> 
+filter(str_starts(var,"Påstående")) |> 
+    filter(parse_number(var)!=13) |> 
+  mutate(
+    item_eng = item_eng |>
+      str_remove("^I study \\s*") |>
+  #    str_remove("^I study because \\s*") |>
+      str_to_sentence(locale = "en")
+  ) |> pull(item_eng)
+
+past_lbl[1]  <- "Enjoy mathematics"
+past_lbl[2]  <- "Get a high grade"
+past_lbl[3]  <- "Pass the course"
+past_lbl[4]  <- "Understand the theory"
+past_lbl[5]  <- "Improve computational skills"
+past_lbl[6]  <- "Improve applied math skills"
+past_lbl[7]  <- "Improve analytical skills"
+past_lbl[8]  <- "Develop mathematical thinking"
+past_lbl[9]  <- "Satisfy intellectual curiosity"
+past_lbl[10] <- "Open my mind"
+past_lbl[11] <- "Prepare for future work"
+past_lbl[12] <- "Obtain my degree"
+
+plotdata= enkat |> 
+  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
+  pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
+  filter(parse_number(Statement)!=13,!is.na(value)) |> 
+  mutate(Statement_f = 
+    factor(parse_number(Statement), ordered = TRUE,
+                            labels = past_lbl)) |> 
+  count(Statement_f, value, .drop = FALSE) |>
+  group_by(Statement_f) |> 
+  mutate(percent = n / sum(n)) |> 
+      mutate(percent_full = 
+              # max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
+                max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
+
+
+plotdata |> 
+  ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
+             y = percent, 
+             fill = value)) +
+  geom_col(position = position_stack(reverse = TRUE)) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    title="I study to/because...",
+    caption="To what degree do you agree with the following\nstatements about your studies in this course?",
+    x = NULL,
+   # y = "Percent",
+   y=NULL,
+    fill = NULL
+  ) +
+  scale_fill_viridis_d(
+    option = "D",
+    labels = c("Not at all", "","","", "", "Completely")
+  ) +
+  scale_x_discrete(drop = FALSE) +
+  guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=14),
+    legend.position = "bottom",
+   # legend.justification = "center",
+  #  legend.box.just = "top",
+    legend.direction = "horizontal",
+    plot.margin = margin(5.5, 5.5, 5.5, 30)
+  )
+
+
+ggsave("Figures/goals_eng.emf",width=13,height=6)
+ggsave("Figures/goals_eng.svg",width=13,height=6)
+
+```
