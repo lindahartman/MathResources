@@ -85,11 +85,8 @@ df <- df0 |>
   select(-VAR00,-VAR01) |> 
   select(ID:course_name,starts_with('Tid'),starts_with('Resurs_'),starts_with('Påstående'),
          everything()) 
-#
 
-
-
-item_labels <- item_labels |>
+item_labels <- item_labels |>  
   mutate(var = var0 |>
     str_replace("^VAR04_", "Tid_uppd_timmar_") |>
     str_replace("^VAR05_", "Resurs_Likert_")   |>
@@ -108,13 +105,29 @@ df <- df |>
     Tid_schema_proc <= 100 ~ "71–100%"
   ) |> factor(levels = c("0%", "1–30%", "31–50%", "51–70%", "71–100%")),
   .after = Tid_schema_proc) |>
+  
   mutate(subject = case_when(
+    str_starts(course_code, "FMA") ~ "Matematik",
+    str_starts(course_code, "FMS") ~ "Matematisk statistik",
+    str_starts(course_code, "MAT") ~ "Matematik",
+    str_starts(course_code, "MAS") ~ "Matematisk statistik"
+  ) |> factor(),
+  .after = course_code) |>
+  
+  mutate(subj_fac = case_when(
     str_starts(course_code, "FMA") ~ "Matte LTH",
     str_starts(course_code, "FMS") ~ "Matstat LTH",
     str_starts(course_code, "MAT") ~ "Matte NF",
     str_starts(course_code, "MAS") ~ "Matstat NF"
   ) |> factor(),
-  .after = course_code) |>
+  .after = subject) |>
+  mutate(subj_abbr = case_when(
+    str_starts(course_code, "FMA") ~ "Matte",
+    str_starts(course_code, "FMS") ~ "Matstat",
+    str_starts(course_code, "MAT") ~ "Matte",
+    str_starts(course_code, "MAS") ~ "Matstat"
+  ) |> factor(),
+  .after = subj_fac) |>
   mutate(course_gr = case_when(
     course_code == "FMAB70" &
       prog %in% c("Teknisk fysik", "Teknisk matematik", "Teknisk nanovetenskap") ~ 1L,
@@ -126,7 +139,7 @@ df <- df |>
     factor(levels = c(1L, 2L, 3L, 4L, 5L),
            labels = c("B2 (F,pi,Nano)", "B2 (övriga)",
                       "MATA32", "FMSF50/20", "MASA03")),
-  .after = subject)
+  .after = course_code)
 
 
 df <- df |>
@@ -189,12 +202,22 @@ dfe <- df |>
     faculty  = fct_recode(faculty,
                            Engineering = "LTH",
                            Science     = "Nfak"),
-    subject   = fct_recode(subject,
+    
+    subject   = fct_recode(subj_fac,
                            Mathematics              = "Matte LTH",
                            Mathematics              = "Matte NF",
                            `Mathematical Statistics` = "Matstat LTH",
                            `Mathematical Statistics` = "Matstat NF"),
-    course_gr = fct_recode(course_gr, `B2 (others)` = "B2 (övriga)"),
+    subj_fac   = fct_recode(subj_fac,
+                            `Math, Eng`              = "Matte LTH",
+                            `Math, Sci`              = "Matte NF",
+                            `MStat, Eng` = "Matstat LTH",
+                            `MStat, Sci` = "Matstat NF"),
+    subj_abbr   = fct_recode(subj_abbr,
+                            Math     = "Matte",
+                            MStat = "Matstat"),
+    course_gr = fct_recode(course_gr, 
+                           `B2 (others)` = "B2 (övriga)"),
     across(starts_with("Resurs_Likert") & !ends_with("_bin"),
            \(x) fct_recode(x, Never = "Aldrig", Always = "Alltid")),
     across(ends_with("_bin"),
