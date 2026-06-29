@@ -28,15 +28,12 @@ item_labels <- item_labels |> left_join(item_labels_eng)
 
 var05_labels <- item_labels |> filter(startsWith(var0, "VAR05")) |>
   mutate(var = str_replace(var0, "^VAR05_", "Resurs_Likert_")) |> select(var, item) |> deframe()
-var06_labels <- item_labels |> filter(startsWith(var0, "VAR06")) |>
-  mutate(var = str_replace(var0, "^VAR06_", "Resurs_Rank_")) |> select(var, item) |> deframe()
+var06_labels <- item_labels |> filter(startsWith(var0, "VAR06")) |>  mutate(var = str_replace(var0, "^VAR06_", "Resurs_Rank_")) |> select(var, item) |> deframe()
 var07_labels <- item_labels |> filter(startsWith(var0, "VAR07")) |>
   mutate(var = str_replace(var0, "^VAR07_", "Påstående_")) |> select(var, item) |> deframe()
 
 likert_05 <- c(Aldrig = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Alltid = 6)
 likert_07 <- c(`Inte alls` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Fullständigt = 6)
-likert_05_eng <- c(Never = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Always = 6)
-likert_07_eng <- c(`Not at all` = 1, `Med--` = 2, `Med-` = 3, `Med+` = 4, `Med++` = 5, Completely = 6)
 
 
 df <- df0 |>
@@ -59,23 +56,24 @@ df <- df0 |>
   separate_wider_regex(
     program,
     patterns = c(prog = ".+", "\\s+\\(", 
-                 fakultet = "[^)]+", "\\)"),
+                 faculty = "[^)]+", "\\)"),
     too_few = "align_start"
   ) |>
-  # Two persons (ID 87 and 268) had NA for fakultet 
+  # Two persons (ID 87 and 268) had NA for faculty 
   # ID 87 - Master i beräkningsfysik, ID 268 Teacher...
   # From freetext I see that they are both Nfak and thus assign them to Nfak
   mutate(prog     = as_factor(prog),
-         fakultet = as_factor(if_else(is.na(fakultet), "Nfak", fakultet))) |>
+         faculty = as_factor(if_else(is.na(faculty), "Nfak", 
+                                      faculty))) |>
   mutate(
     course_name = str_remove(course_name, "\\s*\\([^)]*\\)$"),
     course_code = if_else(
       course_code == "FMSF50 / MASB13 / MASL01",
-      if_else(fakultet == "LTH", "FMSF50", "MASB13"),
+      if_else(faculty == "LTH", "FMSF50", "MASB13"),
       course_code
     )
   ) |>
-  select(ID, prog, fakultet, course_code, course_name, everything()) |>
+  select(ID, prog, faculty, course_code, course_name, everything()) |>
   rename(
     Tid_totalt_timmar = VAR02,
     Tid_schema_proc   = VAR03
@@ -84,8 +82,10 @@ df <- df0 |>
   rename_with(~ str_replace(.x, "^VAR05_", "Resurs_Likert_"),   starts_with("VAR05_")) |>
   rename_with(~ str_replace(.x, "^VAR06_", "Resurs_Rank_"),     starts_with("VAR06_")) |>
   rename_with(~ str_replace(.x, "^VAR07_", "Påstående_"),       starts_with("VAR07_")) |> 
+  select(-VAR00,-VAR01) |> 
   select(ID:course_name,starts_with('Tid'),starts_with('Resurs_'),starts_with('Påstående'),
-         everything())
+         everything()) 
+#
 
 
 
@@ -136,8 +136,8 @@ df <- df |>
     .names = "{.col}_bin"
   ))
 
-df |> select(Resurs_Likert_1, Resurs_Likert_1_bin) |> 
-  count(Resurs_Likert_1, Resurs_Likert_1_bin)
+# df |> select(Resurs_Likert_1, Resurs_Likert_1_bin) |> 
+#  count(Resurs_Likert_1, Resurs_Likert_1_bin)
 
 
 ## Add question formulations
@@ -156,8 +156,10 @@ item_labels <- item_labels |>
 )
 
 
+
+## English version of df ---------------------------------------------------
 ## Descriptive course table -------------------------------------------------
-course_n <- enkat |>
+course_n <- df |>
   filter(!is.na(course_code)) |>
   count(course_code, name = "n_students")
 
@@ -176,14 +178,15 @@ course_table <- tribble(
   left_join(course_n, by = "course_code") |>
   select(course_code, course_name, course_name_abbr, faculty, subject, subject_abbr,
          year, n_students, comments)
+######
 
-## English version of df ---------------------------------------------------
 dfe <- df |>
   select(-course_name) |>
-  left_join(course_table |> select(course_code, course_name), by = "course_code") |>
+  left_join(course_table |> select(course_code, course_name), 
+            by = "course_code") |>
   relocate(course_name, .after = course_code) |>
   mutate(
-    fakultet  = fct_recode(fakultet,
+    faculty  = fct_recode(faculty,
                            Engineering = "LTH",
                            Science     = "Nfak"),
     subject   = fct_recode(subject,
@@ -227,9 +230,15 @@ dfe <- df |>
     .after = prog
   )
 
+
+
+############# Save dfs
 saveRDS(df,'Data/enkat.rds')
 saveRDS(dfe, 'Data/enkat_eng.rds')
 saveRDS(item_labels,'Data/item_labels.rds')
 saveRDS(course_table, 'Data/course_table.rds')
 
-rm(list=c("df","df0","item_labels","likert_05","likert_07","var05_labels","var06_labels","var07_labels"))
+rm(list=c("df","dfe","df0","df0_eng",
+          "item_labels","item_labels_eng",
+          "likert_05","likert_07",
+          "var05_labels","var06_labels","var07_labels"))
