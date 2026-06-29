@@ -17,6 +17,7 @@ library(tidyverse)
 library(skimr)
 library(scales)
 library(patchwork)
+library(gt)
 ```
 
 ## Data
@@ -31,12 +32,21 @@ Free text answers are not included here.
 
 enkat_eng <- readRDS('Data/enkat_eng.rds') |> select(-starts_with("VAR"))
 item_labels <- readRDS('Data/item_labels.rds')
-
+ct <- readRDS('data/course_table.rds')
 ```
+
 
 ```{r}
 #| label: skim
 #enkat |>  skim()
+
+```
+## Table of courses/subject and faculty
+This table gives an overview over the different courses, how they are distributed on faculty and subject
+```{r}
+#| label: course_table
+
+ct |>  gt()
 ```
 
 
