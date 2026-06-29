@@ -702,7 +702,7 @@ past_lbl[6] <- "Öka min förmåga att\ntillämpa matematik."
 past_lbl[12] <- "Kursen ingår i\nexamen jag vill ta ut"
 
 plotdata= enkat |> 
-  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
+  select(ID,prog,faculty,course_code,subject,course_gr,starts_with("Påstående")) |> 
   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
   filter(parse_number(Statement)!=13,!is.na(value)) |> 
   mutate(Statement_f = 

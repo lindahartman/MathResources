@@ -68,7 +68,7 @@ past_lbl[11] <- "Prepare for future work"
 past_lbl[12] <- "Obtain my degree"
 
 plotdata= enkat_eng |> 
-  select(ID,prog,fakultet,course_code,subject,course_gr,starts_with("Påstående")) |> 
+  select(ID,prog,faculty,course_code,subject,course_gr,starts_with("Påstående")) |> 
   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
   filter(parse_number(Statement)!=13,!is.na(value)) |> 
   mutate(Statement_f = 
