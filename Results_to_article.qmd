@@ -43,6 +43,7 @@ item_labels <- readRDS('Data/item_labels.rds')
 ## Goals for studying mathematics
 
 ```{r}
+#| label: goals_bar
 
 past_lbl=item_labels |> select(var,item_eng) |> 
 filter(str_starts(var,"Påstående")) |> 
@@ -85,7 +86,7 @@ plotdata= enkat_eng |>
 plotdata |> 
   ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
              y = percent, 
-             fill = value)) +
+             fill = fct_rev(value))) +
   geom_col(position = position_stack(reverse = TRUE)) +
   scale_y_continuous(labels = percent) +
   labs(
@@ -99,10 +100,11 @@ plotdata |>
   ) +
   scale_fill_viridis_d(
     option = "D",
-    labels = c("Not at all", "","","", "", "Completely")
+    direction = -1,
+    labels = c("Completely", "","","", "", "Not at all")
   ) +
   scale_x_discrete(drop = FALSE) +
-  guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
+  guides(fill = guide_legend(reverse = FALSE, nrow = 1)) +
   theme_minimal(base_size = 14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=14),
     legend.position = "bottom",
