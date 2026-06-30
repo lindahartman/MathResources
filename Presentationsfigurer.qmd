@@ -248,8 +248,7 @@ enkat |>
 seldata =  enkat |> filter(!is.na(subject)) 
 plotdata= bind_rows(
   seldata |> mutate(subject = "Total"),
-  seldata
-) |>
+  seldata) |>
   mutate(subject = factor(subject,
     levels = c("Total", "Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF")))
 

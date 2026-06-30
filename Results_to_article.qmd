@@ -102,7 +102,7 @@ plotdata |>
   labs(
  #   title="I study to/because...",
      title="I study to...",
-    caption="To what degree do you agree with the following\nstatements about your studies in this course?",
+    caption="To what degree do you agree with the following statements about your studies in this course?",
     x = NULL,
    # y = "Percent",
    y=NULL,
@@ -125,8 +125,8 @@ plotdata |>
   )
 
 
-ggsave("Figures/goals_eng.emf",width=13,height=6)
-ggsave("Figures/goals_eng.svg",width=13,height=6)
+ggsave("Figures/article/goals.emf",width=13,height=6)
+ggsave("Figures/article/goals.svg",width=13,height=6)
 
 ```
 
@@ -156,11 +156,17 @@ p_total_all <- enkat_eng |>
   theme_minimal(base_size=14) +
   theme(legend.position = "none")
 p_total_all
+
+
+ggsave("Figures/article/studytime.emf",width=13,height=6)
+ggsave("Figures/article/studytime.svg",width=13,height=6)
 ```
 
-### Proportion scheduled time - as Violins
 
-#### Split by Subject & faculty
+
+## Results, time on different activities
+
+### Time allocated to scheduled activities (%)
 ```{r}
 #| label: violin_all
 
@@ -169,9 +175,9 @@ plotdata= bind_rows(
   seldata |> mutate(subj_fac = "Total"),
   seldata) |>
   mutate(subj_fac = factor(subj_fac,
-    levels = c("Total", "Math, LTH",  "Math, Sci", "MStat, LTH", "MStat, Sci")))
+                           levels = c("Total", "Math LTH",  "Math Sci", "MStat LTH", "MStat Sci")))
 
-    
+
 
 plotdata_sum <- plotdata |> group_by(subj_fac) |> 
   summarize(n=n(),nlab=paste0("n = \n",n),Tid_schema_proc = mean(Tid_schema_proc))
@@ -181,28 +187,410 @@ nlbl=paste0(" n = ", plotdata |> filter(subj_fac != "Total") |> count())
 plotdata |>
   ggplot(aes(x = subj_fac, y = Tid_schema_proc, fill = subj_fac)) +
   geom_violin() +
- geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum) +
+  geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum) +
   scale_color_manual(values = 
-    c("Total" = "white",
-    "Math, LTH"   = "black",
-    "Math, Sci"    = "black",
-    "MStat, LTH" = "black",
-    "MStat, Sci"  = "black"), guide = "none") +
+                       c("Total" = "white",
+                         "Math LTH"   = "black",
+                         "Math Sci"    = "black",
+                         "MStat LTH" = "black",
+                         "MStat Sci"  = "black"), guide = "none") +
   scale_fill_manual(values = 
-    c("Total"     = "#005a32",
-    "Math, LTH"   = "#238b45",
-    "Math, Sci"    = "#41ab5d",
-    "MStat, LTH" = "#74c476",
-    "MStat, Sci"  = "#bae4b3")) +
-  labs(x = NULL, y = 'Proportion (%)', title = "Proportion time students spent on scheduled activities (%)", subtitle=nlbl,
-    caption = str_wrap("Approximately, what is the percentage 
+                      c("Total"     = "#005a32",
+                        "Math LTH"   = "#238b45",
+                        "Math Sci"    = "#41ab5d",
+                        "MStat LTH" = "#74c476",
+                        "MStat Sci"  = "#bae4b3")) +
+  labs(x = NULL, y = NULL, title = "Proportion time student spent on scheduled activities (%)", subtitle=nlbl,
+       caption = str_wrap("Approximately, what is the percentage 
        of the total study time for this course 
        that you have spent on scheduled activities the last week? 
        Give an approximate answer in percentage. 
        The rest of the time is assumed to be self study.",
-                          width=118)) +
+                          width=120)) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "none",plot.caption = element_text(size=10))
 
 ```
+
+### Time allocated to study (hours) during last week on course activities
+Description: For each of the activities below, please tell us approximately how many hours during the last week you spent on each of the listed activities in this course on average per week. 
+The question had six sub-questions (variables below), one for each activity
+
+
+### Lectures, Exercises, and Combined Hours
+```{r}
+#| label: att_lect_exc
+
+sel_data <- enkat_eng |>
+  filter(!is.na(subj_fac), 
+         !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
+         !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),
+         course_code != 'FMSF80') |>
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + Tid_uppd_timmar_5)
+
+nlbl <- paste0("n = ", sel_data |> count() |> pull(n))
+
+# Add sample sizes for each group
+group_ns <- bind_rows(
+  tibble(group = "Total", n = nrow(sel_data)),
+  sel_data |> group_by(subj_fac) |> count() |> 
+    mutate(group = as.character(subj_fac)) |> select(group, n)
+) |>
+  mutate(
+    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", "MStat LTH", "MStat Sci")),
+    group_label = paste0(group, "\n(n = ", n, ")")
+  )
+
+# Prepare data for lectures, exercises, and total
+plot_data <- bind_rows(
+  # Lectures
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1, type = "Lectures", group = "Total") |>
+    select(type, hours, group),
+  # Exercises (seminars + exercise sessions + computer exercises)
+  sel_data |>
+    mutate(hours = Tid_exercise, type = "Exercises", group = "Total") |>
+    select(type, hours, group),
+  # Lect + Exercise combined
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1 + Tid_exercise) |>
+    mutate(type = "Lect + Exerc", group = "Total") |>
+    select(type, hours, group),
+  # By subject - lectures
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1, type = "Lectures", group = as.character(subj_fac)) |>
+    select(type, hours, group),
+  # By subject - exercises
+  sel_data |>
+    mutate(hours = Tid_exercise, type = "Exercises", group = as.character(subj_fac)) |>
+    select(type, hours, group),
+  # By subject - combined
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1 + Tid_exercise) |>
+    mutate(type = "Lect + Exerc", group = as.character(subj_fac)) |>
+    select(type, hours, group)
+) |>
+  mutate(
+    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", "MStat LTH", "MStat Sci")),
+    type = factor(type, levels = c("Lectures", "Exercises", "Lect + Exerc"))
+  ) |>
+  left_join(group_ns |> select(group, group_label), by = "group") |>
+  # Order group_label by group factor levels (which are already ordered)
+  mutate(group_label = factor(group_label, levels = unique(group_ns$group_label)))
+
+# Calculate excluded counts (observations beyond x-axis limit of 25)
+excluded_counts <- bind_rows(
+  # Lectures - Total
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1, type = "Lectures", group = "Total") |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop"),
+  # Exercises - Total
+  sel_data |>
+    mutate(hours = Tid_exercise, type = "Exercises", group = "Total") |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop"),
+  # Lect + Exerc - Total
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1 + Tid_exercise, type = "Lect + Exerc", group = "Total") |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop"),
+  # Lectures - By subject
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1, type = "Lectures", group = as.character(subj_fac)) |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop"),
+  # Exercises - By subject
+  sel_data |>
+    mutate(hours = Tid_exercise, type = "Exercises", group = as.character(subj_fac)) |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop"),
+  # Lect + Exerc - By subject
+  sel_data |>
+    mutate(hours = Tid_uppd_timmar_1 + Tid_exercise, type = "Lect + Exerc", group = as.character(subj_fac)) |>
+    group_by(group, type) |>
+    summarize(n_out = sum(hours > 25), .groups = "drop")
+) |>
+  mutate(
+    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", "MStat LTH", "MStat Sci")),
+    type = factor(type, levels = c("Lectures", "Exercises", "Lect + Exerc"))
+  ) |>
+  left_join(group_ns |> select(group, group_label), by = "group") |>
+  # Order group_label by group factor levels
+  mutate(group_label = factor(group_label, levels = unique(group_ns$group_label))) |>
+  mutate(label = if_else(n_out > 0, paste0("n_out = ", n_out), NA_character_))
+
+# Create plot with x-scale 0-20 for all columns
+plot_data |>
+  ggplot(aes(x = hours, fill = group, y = after_stat(100 * count / tapply(count, PANEL, sum)[PANEL]))) +
+  geom_histogram(breaks = c(-0.5, 0.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5, 14.5, 16.5, 18.5, 20.5, 22.5, 24.5),
+                 color = 'black', linewidth = 0.3) +
+  scale_x_continuous(limits = c(-1, 26)) +
+  facet_grid(group_label ~ type, scales = "free_y") +
+  scale_fill_manual(values = 
+                      c("Total"     = "#005a32",
+                        "Math LTH"   = "#238b45",
+                        "Math Sci"    = "#41ab5d",
+                        "MStat LTH" = "#74c476",
+                        "MStat Sci"  = "#bae4b3"),
+                    guide = "none") +
+  geom_text(data = excluded_counts,
+            aes(x = 19, y = Inf, label = label, fill = NULL),
+            vjust = 1.2, hjust = 0.9, size = 3.5, fontface = "italic") +
+  labs(title = 'Attendance at Lectures and Exercises',
+       subtitle = paste0('Course FMSF80 excluded, ', nlbl),
+       x = "Time (hours)",
+       y = "Percentage (%)") +
+  theme_minimal(base_size = 13) +
+  theme(panel.spacing = unit(0.5, "lines"),
+        aspect.ratio = 1,
+        strip.text = element_text(face = "bold"))
+
+ggsave("Figures/article/hist_lect_exc.emf", width = 10, height = 12)
+ggsave("Figures/article/hist_lect_exc.png", width = 10, height = 12)
+```
+
+
+
+## Use of self study resources
+
+### Resurser  - Andel på nivå 5 och 6
+
+
+A graph of common self study resources.  Proportion that marks level 5 or 6,plit by subject and faculty
+```{r}
+#| label: common_resources
+# 
+# enkat |> count(subj_fac,Resurs_Likert_1_bin) |>
+#   filter(!is.na(Resurs_Likert_1_bin)) |> 
+#   group_by(subj_fac) |>
+#   mutate(total=sum(n),pct=n/total)
+
+item_short <- c(
+  Resurs_Likert_1  = "Course literature",
+  Resurs_Likert_2  = "Videos LU teachers",
+  Resurs_Likert_3  = "Videos other uni",
+  Resurs_Likert_4  = "Videos non-uni",
+  Resurs_Likert_5  = "Study friends",
+  Resurs_Likert_6  = "Family/friends",
+  Resurs_Likert_7  = "Lecture notes",
+  Resurs_Likert_8  = "Old exams",
+  Resurs_Likert_9  = "Discussion forum",
+  Resurs_Likert_10 = "Other Canvas material",
+  Resurs_Likert_11 = "Google/Wikipedia",
+  Resurs_Likert_12 = "Generative AI",
+  Resurs_Likert_13 = "Wolfram/GeoGebra/Desmos",
+  Resurs_Likert_14 = "Python/R/Matlab",
+  Resurs_Likert_15 = "Mozquizto",
+  Resurs_Likert_16 = "Own lecture notes",
+  Resurs_Likert_17 = "Other student's notes",
+  Resurs_Likert_18 = "tekniskfysik.org",
+  Resurs_Likert_19 = "Library",
+  Resurs_Likert_20 = "Frågeforum (MC)",
+  Resurs_Likert_21 = "Other online forum",
+  Resurs_Likert_22 = "Email to teacher",
+  Resurs_Likert_23 = "Other resource 1",
+  Resurs_Likert_24 = "Other resource 2"
+)
+
+
+subj_fac_n <- enkat_eng |> 
+  filter(!is.na(subj_fac)) |>
+  count(subj_fac) |>
+  deframe()
+
+
+plotdata <- enkat_eng |>
+  pivot_longer(
+    matches("^Resurs_Likert_\\d+_bin$"),
+    names_to  = "item",
+    values_to = "bin"
+  ) |>
+  filter(item %in% paste0("Resurs_Likert_", 
+                          c(1, 2, 5, 8, 12, 16, 18),
+                          "_bin")) |>
+  filter(!is.na(bin), !is.na(subj_fac)) |>
+  count(subj_fac, item, bin) |>
+  group_by(subj_fac, item) |>
+  mutate(total = sum(n), pct = n / total) |>
+  ungroup() |>
+  mutate(subj_fac = fct_relabel(subj_fac, \(x) paste0(x, " (n=", subj_fac_n[x], ")"))) |> 
+  filter(bin=="Often") |> 
+  mutate(item_label = item_short[
+    str_remove(item, "_bin$")
+    ]) 
+  
+  # Calculate total sample size for overall
+  overall_n <- enkat_eng |> 
+    filter(!is.na(subj_fac)) |> 
+    nrow()
+  
+  overall <- plotdata |>
+    summarise(n = sum(n), total = sum(total), .by = item_label) |>
+    mutate(pct = n / total,
+           subj_fac = factor(paste0("Overall (n=", overall_n, ")"), 
+                            levels = c(levels(plotdata$subj_fac), paste0("Overall (n=", overall_n, ")"))))
+
+  plotdata_full <- bind_rows(
+    plotdata |> mutate(subj_fac = fct_expand(subj_fac, "Overall")),
+    overall
+  )
+
+  plotdata_full |>
+    filter(subj_fac != "Overall") |>
+    arrange(subj_fac) |>
+    ggplot(aes(x=pct, y=subj_fac, color=item_label, group=item_label)) +
+    geom_path(alpha=0.7, linewidth=1.2) +
+    geom_jitter(size=5, width=0.005, height=0, alpha=0.8) +
+    geom_point(
+      data = filter(plotdata_full, str_detect(subj_fac, "^Overall")),
+      shape = 18, size = 8
+    ) +
+    labs(title='Commonly used self study resources', 
+         x = "Percentage for level 5+6 (1 = Never, 6 = Always)", 
+         y = NULL, 
+         color = NULL,
+         ) +
+    scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
+    scale_y_discrete(limits = c(rev(levels(plotdata$subj_fac)), paste0("Overall (n=", overall_n, ")")), 
+                     drop = FALSE) +
+    theme_minimal(base_size = 15)
+  
+  
+
+ggsave("Figures/resources_high.emf",width=9,height=6)
+ggsave("Figures/resources_high.svg",width=9,height=6)
+```
+
+Split by subject
+```{r}
+# 
+# enkat |> count(subj_fac,Resurs_Likert_1_bin) |>
+#   filter(!is.na(Resurs_Likert_1_bin)) |> 
+#   group_by(subj_fac) |>
+#   mutate(total=sum(n),pct=n/total)
+
+
+subject_n <- enkat |> 
+  filter(!is.na(subject)) |>
+  count(subject) |>
+  deframe()
+
+
+plotdata <- enkat |>
+  pivot_longer(
+    matches("^Resurs_Likert_\\d+_bin$"),
+    names_to  = "item",
+    values_to = "bin"
+  ) |>
+  filter(item %in% paste0("Resurs_Likert_", 
+                          c(1, 2, 5, 8, 12, 16, 18),
+                          "_bin")) |>
+  filter(!is.na(bin), !is.na(subject)) |>
+  mutate(subject = factor(subject, 
+                          levels = c("Matte LTH", "Matstat LTH",
+                                      "Matte NF","Matstat NF"))
+         ) |>
+  count(subject, item, bin) |>
+  group_by(subject, item) |>
+  mutate(total = sum(n), pct = n / total) |>
+  ungroup() |>
+  mutate(subject = fct_relabel(subject, \(x) paste0(x, " (n=", subject_n[x], ")"))) |> 
+  filter(bin=="Ofta") |> 
+  mutate(item_label = item_short[
+    str_remove(item, "_bin$")
+    ]) 
+  
+  overall <- plotdata |>
+    summarise(n = sum(n), total = sum(total), .by = item_label) |>
+    mutate(pct = n / total,
+           subject = factor("Overall", levels = c(levels(plotdata$subject), "Overall")))
+
+  plotdata_full <- bind_rows(
+    plotdata |> mutate(subject = fct_expand(subject, "Overall")),
+    overall
+  )
+
+  plotdata_full |>
+    filter(subject != "Overall") |>
+ #   arrange(subject) |>
+    ggplot(aes(x=pct, y=subject, color=item_label, group=item_label)) +
+    geom_path(alpha=0.7, linewidth=1.2) +
+    geom_jitter(size=5, width=0.005, height=0, alpha=0.8) +
+    geom_point(
+      data = filter(plotdata_full, subject == "Overall"),
+      shape = 18, size = 8
+    ) +
+    labs(title='Commonly used self study resources', 
+         x = "Percentage for level 5+6 (1 = Never, 6 = Always)", 
+         y = NULL, 
+         color = NULL,
+         ) +
+    scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
+    scale_y_discrete(limits = c(rev(levels(plotdata$subject)), "Overall"), 
+                     drop = FALSE) +
+    theme_minimal(base_size = 15)
+  
+  
+
+ggsave("Figures/resources_high_subject.emf",width=9,height=6)
+ggsave("Figures/resources_high_subject.svg",width=9,height=6)
+```
+## Appendix
+### Attendance at scheduled hours 
+Alternatives with lectures and exercises separately (no total). Code (commented) is available here. 
+#### Lectures
+Attendance at lectures last week
+```{r}
+#| label: att_lectures
+# 
+# seldata =  enkat_eng |>
+#   filter(!is.na(subj_fac),!is.na(Tid_uppd_timmar_1),course_code!='FMSF80')
+# 
+# nlbl=paste0("n = ",seldata |> count() |> pull(n))
+# 
+# seldata |>
+#   add_count(subj_fac, name = "n_total") |>
+#   arrange(subj_fac) |>
+#   mutate(subj_fac_lbl = fct_inorder(paste0(subj_fac, " (n = ", n_total, ")"))) |>
+#   ggplot(aes(x=Tid_uppd_timmar_1)) +
+#   geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+#                   fill = 'darkgreen', alpha = 0.7,color='black') +
+#   facet_wrap(~subj_fac_lbl,scales='free_y')+
+#   labs(title = 'Attended Lectures',
+#        subtitle = paste0('Course FMSF80 excluded, ',nlbl),
+#        x = "Time (hours)") +
+#   theme_minimal(base_size=15)
+# 
+# ggsave("Figures/article/hist_lect.emf",width=12,height=6)
+# ggsave("Figures/article/hist_lect.svg",width=12,height=6)
+```
+
+#### Exercises
+Attendance at exercises last week
+```{r}
+#| label: att_exercises
+# 
+# seldata <-   enkat_eng |>
+#   filter(!is.na(subj_fac),!is.na(Tid_uppd_timmar_3),course_code!='FMSF80')
+# 
+# nlbl=paste0("n = ",seldata |> count() |> pull(n))
+# 
+# seldata |>
+#   add_count(subj_fac, name = "n_total") |>
+#   arrange(subj_fac) |>
+#   mutate(subj_fac_lbl = fct_inorder(paste0(subj_fac, " (n = ", n_total, ")"))) |>
+#   ggplot(aes(x=Tid_uppd_timmar_3)) +
+#   geom_histogram( breaks = c(-0.5,0.5,2.5,4.5,6.5,8.5,10.5,12.5),
+#                   fill = 'darkgreen', alpha = 0.7,color='black') +
+#   facet_wrap(~subj_fac_lbl,scales='free_y')+
+#   labs(title = 'Attended Exercise Sessions',
+#        subtitle = paste0('Course FMSF80 excluded, ',nlbl),
+#        x = "Time (hours)") +
+#   theme_minimal(base_size=15)
+# 
+# ggsave("Figures/article/hist_exc.emf",width=12,height=6)
+# ggsave("Figures/article/hist_exc.svg",width=12,height=6)
+```
+
 
