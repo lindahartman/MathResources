@@ -129,3 +129,80 @@ ggsave("Figures/goals_eng.emf",width=13,height=6)
 ggsave("Figures/goals_eng.svg",width=13,height=6)
 
 ```
+
+## Total hours spent on the course
+
+For all 
+```{r}
+
+nlbl_all= paste0(" n = ", enkat_eng |>count()) 
+p_total_all <- enkat_eng |>
+  count(Tid_totalt_timmar) |>
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+#  mutate(nlbl = paste0(" (n = ", n_total, ")")) |>
+  ggplot(aes(x = Tid_totalt_timmar, y = pct, fill = Tid_totalt_timmar)) +
+  geom_col(color="black") +
+#  geom_text(aes(label = n), vjust = -0.4, size = 3) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = 'Hours', y = 'Percentage',  title = "Total hours spent in this course",
+       caption = str_wrap("Approximately, how many hours have you spent on your
+                          mathematics studies in this course totally the last week?\n 
+                          The question refers to the total time spent, 
+                          consisting of scheduled time as well as 
+                          self study.",width=110),
+       subtitle = paste0('Scheduled teaching + self studies, ',nlbl_all))  +
+  theme_minimal(base_size=14) +
+  theme(legend.position = "none")
+p_total_all
+```
+
+### Proportion scheduled time - as Violins
+
+#### Split by Subject & faculty
+```{r}
+#| label: violin_all
+
+seldata =  enkat_eng |> filter(!is.na(subj_fac)) 
+plotdata= bind_rows(
+  seldata |> mutate(subj_fac = "Total"),
+  seldata) |>
+  mutate(subj_fac = factor(subj_fac,
+    levels = c("Total", "Math, LTH",  "Math, Sci", "MStat, LTH", "MStat, Sci")))
+
+    
+
+plotdata_sum <- plotdata |> group_by(subj_fac) |> 
+  summarize(n=n(),nlab=paste0("n = \n",n),Tid_schema_proc = mean(Tid_schema_proc))
+
+nlbl=paste0(" n = ", plotdata |> filter(subj_fac != "Total") |> count()) 
+
+plotdata |>
+  ggplot(aes(x = subj_fac, y = Tid_schema_proc, fill = subj_fac)) +
+  geom_violin() +
+ geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum) +
+  scale_color_manual(values = 
+    c("Total" = "white",
+    "Math, LTH"   = "black",
+    "Math, Sci"    = "black",
+    "MStat, LTH" = "black",
+    "MStat, Sci"  = "black"), guide = "none") +
+  scale_fill_manual(values = 
+    c("Total"     = "#005a32",
+    "Math, LTH"   = "#238b45",
+    "Math, Sci"    = "#41ab5d",
+    "MStat, LTH" = "#74c476",
+    "MStat, Sci"  = "#bae4b3")) +
+  labs(x = NULL, y = 'Proportion (%)', title = "Proportion time students spent on scheduled activities (%)", subtitle=nlbl,
+    caption = str_wrap("Approximately, what is the percentage 
+       of the total study time for this course 
+       that you have spent on scheduled activities the last week? 
+       Give an approximate answer in percentage. 
+       The rest of the time is assumed to be self study.",
+                          width=118)) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none",plot.caption = element_text(size=10))
+
+```
+
