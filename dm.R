@@ -97,6 +97,16 @@ item_labels <- item_labels |>
 
 # Add factor versions
 df <- df |>
+  # stor osäkerhet i dessa siffror
+  # mutate(Tid_selvstudie_timmar = case_when(
+  #   Tid_totalt_timmar == "0-5"   ~ 2.5 * (1 - Tid_schema_proc / 100),
+  #   Tid_totalt_timmar == "6-10"  ~ 8 * (1 - Tid_schema_proc / 100),
+  #   Tid_totalt_timmar == "11-20" ~ 15.5 * (1 - Tid_schema_proc / 100),
+  #   Tid_totalt_timmar == "21-30" ~ 25.5 * (1 - Tid_schema_proc / 100),
+  #   Tid_totalt_timmar == "31-40" ~ 35.5 * (1 - Tid_schema_proc / 100),
+  #   Tid_totalt_timmar == ">40"   ~ 40 * (1 - Tid_schema_proc / 100)
+  # ),
+  # .after = Tid_schema_proc) |>
   mutate(Tid_schema_grp5 = case_when(
     Tid_schema_proc == 0   ~ "0%",
     Tid_schema_proc <= 30  ~ "1–30%",
@@ -119,7 +129,7 @@ df <- df |>
     str_starts(course_code, "FMS") ~ "Matstat LTH",
     str_starts(course_code, "MAT") ~ "Matte NF",
     str_starts(course_code, "MAS") ~ "Matstat NF"
-  ) |> factor(),
+  ) |> factor(levels = c("Matte LTH", "Matte NF", "Matstat LTH", "Matstat NF")),
   .after = subject) |>
   mutate(subj_abbr = case_when(
     str_starts(course_code, "FMA") ~ "Matte",
@@ -210,10 +220,11 @@ dfe <- df |>
                            `Mathematical Statistics` = "Matstat LTH",
                            `Mathematical Statistics` = "Matstat NF"),
     subj_fac   = fct_recode(subj_fac,
-                            `Math, LTH`              = "Matte LTH",
-                            `Math, Sci`              = "Matte NF",
-                            `MStat, LTH` = "Matstat LTH",
-                            `MStat, Sci` = "Matstat NF"),
+                            `Math LTH`              = "Matte LTH",
+                            `Math Sci`              = "Matte NF",
+                            `MStat LTH` = "Matstat LTH",
+                            `MStat Sci` = "Matstat NF") |>
+                 fct_relevel("Math LTH", "Math Sci", "MStat LTH", "MStat Sci"),
     subj_abbr   = fct_recode(subj_abbr,
                             Math     = "Matte",
                             MStat = "Matstat"),
@@ -264,5 +275,6 @@ saveRDS(course_table, 'Data/course_table.rds')
 
 rm(list=c("df","dfe","df0","df0_eng",
           "item_labels","item_labels_eng",
+          "course_n","course_table",
           "likert_05","likert_07",
           "var05_labels","var06_labels","var07_labels"))
