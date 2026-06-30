@@ -139,7 +139,7 @@ df <- df |>
     factor(levels = c(1L, 2L, 3L, 4L, 5L),
            labels = c("B2 (F,pi,Nano)", "B2 (övriga)",
                       "MATA32", "FMSF50/20", "MASA03")),
-  .after = course_code)
+  .after = course_code) 
 
 
 df <- df |>
@@ -178,18 +178,19 @@ course_n <- df |>
 
 course_table <- tribble(
   ~course_code, ~course_name,                                                                ~course_name_abbr,    ~faculty,      ~subject,                   ~subject_abbr, ~year,  ~comments,
-  "FMAB50",     "Calculus in One Variable A2",                                               "Calculus 1A2",       "Engineering", "Mathematics",              "Math",        "1",    "",
-  "FMAB70",     "Calculus in One Variable B2",                                               "Calculus 1B2",       "Engineering", "Mathematics",              "Math",        "1",    "",
+  "FMAB50",     "Calculus in One Variable A2",                                               "Calculus 1 A2",       "Engineering", "Mathematics",              "Math",        "1",    "",
+  "FMAB70",     "Calculus in One Variable B2",                                               "Calculus 1 B2",       "Engineering", "Mathematics",              "Math",        "1",    "",
   "FMSF20",     "Mathematical Statistics, Basic Course (for E and D)",                       "MathStat (E,D)",     "Engineering", "Mathematical Statistics",  "MathStat",    "3",    "",
   "FMSF50",     "Mathematical Statistics, Basic Course (for L, V, Risk, Physics, Teachers)", "MathStat (L,V,…)",   "Engineering", "Mathematical Statistics",  "MathStat",    "3",    "",
   "FMSF80",     "Mathematical Statistics, Basic Course (for F, I, Pi)",                      "MathStat (F,I,Pi)",  "Engineering", "Mathematical Statistics",  "MathStat",    "2",    "",
   "MASA03",     "Mathematical Statistics, Basic Course (Faculty of Science)",                "MathStat (Sci)",     "Science",     "Mathematical Statistics",  "MathStat",    "1–3",  "",
-  "MASB13",     "Mathematical Statistics, Basic Course (for L, V, Risk, Physics, Teachers)", "MathStat (L,V,…) S", "Science",     "Mathematical Statistics",  "MathStat",    "1–3",  "",
-  "MATA31",     "Analysis in One Variable (Faculty of Science)",                             "Analysis 1V (Sci)",  "Science",     "Mathematics",              "Math",        "1",    "",
-  "MATA32",     "Algebra and Vector Geometry (Faculty of Science)",                          "Algebra & VG (Sci)", "Science",     "Mathematics",              "Math",        "1",    "",
+  "MASB13",     "Mathematical Statistics, Basic Course (for L, V, Risk, Physics, Teachers)", "MathStat (L,V,…)", "Science",     "Mathematical Statistics",  "MathStat",    "1–3",  "",
+  "MATA31",     "Analysis in One Variable (Faculty of Science)",                             "Analysis 1",  "Science",     "Mathematics",              "Math",        "1",    "",
+  "MATA32",     "Algebra and Vector Geometry (Faculty of Science)",                          "Algebra & VG", "Science",     "Mathematics",              "Math",        "1",    "",
 ) |>
+  mutate(faculty_abbr = if_else(faculty == "Engineering", "LTH", "Sci"), .after=faculty) |>
   left_join(course_n, by = "course_code") |>
-  select(course_code, course_name, course_name_abbr, faculty, subject, subject_abbr,
+  select(course_code, course_name, course_name_abbr, faculty, faculty_abbr, subject, subject_abbr,
          year, n_students, comments)
 ######
 
@@ -209,9 +210,9 @@ dfe <- df |>
                            `Mathematical Statistics` = "Matstat LTH",
                            `Mathematical Statistics` = "Matstat NF"),
     subj_fac   = fct_recode(subj_fac,
-                            `Math, Eng`              = "Matte LTH",
+                            `Math, LTH`              = "Matte LTH",
                             `Math, Sci`              = "Matte NF",
-                            `MStat, Eng` = "Matstat LTH",
+                            `MStat, LTH` = "Matstat LTH",
                             `MStat, Sci` = "Matstat NF"),
     subj_abbr   = fct_recode(subj_abbr,
                             Math     = "Matte",
