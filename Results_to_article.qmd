@@ -391,7 +391,7 @@ p <- plot_data |>
         strip.text = element_text(face = "bold"))
 
 ggsave("Figures/article/hist_lect_exc.emf", width = 10, height = 12)
-ggsave("Figures/article/hist_lect_exc.png", width = 10, height = 12)
+ggsave("Figures/article/hist_lect_exc.svg", width = 10, height = 12)
 
 p
 ```
