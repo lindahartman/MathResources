@@ -46,7 +46,10 @@ This table gives an overview over the different courses, how they are distribute
 ```{r}
 #| label: course_table
 
-ct |>  gt()
+ct |> 
+  select(course_code, course_name_abbr, faculty_abbr, subject,year,speed,comments) |> 
+  arrange(faculty_abbr,desc(subject)) |> 
+  gt()
 ```
 
 
