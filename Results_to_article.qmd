@@ -434,6 +434,8 @@ item_short <- c(
 
 
 ### Average use of resources
+@fig-resources_mean displays the average score for each listed resource. 
+The number of students with an answer ranges from 570 to 580 for the different questions.
 
 ```{r}
 #| label: fig-resources_mean
@@ -478,6 +480,10 @@ ggplot(mean_resources, aes(x = mean_score, y = resource_label, fill = usage_cate
     y = NULL
   ) +
   theme_minimal(base_size = 13)
+
+
+ggsave("Figures/article/resources_mean.emf",width=9,height=6)
+ggsave("Figures/article/resources_mean.svg",width=9,height=6)
 ```
 
 ### Proportion at level 5 och 6
