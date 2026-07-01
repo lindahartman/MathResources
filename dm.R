@@ -199,9 +199,10 @@ course_table <- tribble(
   "MATA32",     "Algebra and Vector Geometry (Faculty of Science)",                          "Algebra & VG", "Science",     "Mathematics",              "Math",        "1",    "",
 ) |>
   mutate(faculty_abbr = if_else(faculty == "Engineering", "LTH", "Sci"), .after=faculty) |>
+  mutate(speed = ifelse(course_code=='FMSF80',0.3,0.5)) |> 
   left_join(course_n, by = "course_code") |>
   select(course_code, course_name, course_name_abbr, faculty, faculty_abbr, subject, subject_abbr,
-         year, n_students, comments)
+         year, speed, n_students, comments)
 ######
 
 dfe <- df |>
