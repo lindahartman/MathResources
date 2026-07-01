@@ -444,7 +444,11 @@ item_short <- c(
 #| fig-cap: "Average use of self-study resources"
 
 # Calculate mean for all Resurs_Likert columns, excluding "Other resource"
-mean_resources <- enkat_eng |>
+# Filter out students with NA for all Resurs_Likert variables
+enkat_resources <- enkat_eng |> select(-Resurs_Likert_23,Resurs_Likert_24) |> 
+  filter(!if_all(starts_with("Resurs_Likert_"), is.na))
+
+mean_resources <- enkat_resources |>
   select(starts_with("Resurs_Likert_"), -ends_with("_bin")) |>
   summarise(across(everything(), ~mean(as.numeric(.), na.rm = TRUE))) |>
   pivot_longer(everything(), names_to = "resource", values_to = "mean_score") |>
@@ -460,13 +464,16 @@ mean_resources <- enkat_eng |>
     usage_category = factor(usage_category, levels = c("High use", "Medium use", "Low use"))
   )
 
+nlbl_resources <- paste0("n = ", enkat_resources |> nrow())
+
 ggplot(mean_resources, aes(x = mean_score, y = resource_label, fill = usage_category)) +
   geom_col(color = "black") +
-  geom_text(aes(x = mean_score, label = sprintf("%.1f", mean_score)), hjust = -0.1, vjust = 0.5, size = 5) +
+  geom_text(aes(x = mean_score, label = sprintf("%.2f", mean_score)), hjust = -0.1, vjust = 0.5, size = 3) +
   scale_fill_manual(values = c("High use" = "#005a32", "Medium use" = "#41ab5d", "Low use" = "#bae4b3"), guide = "none") +
-#  scale_x_continuous(limits = c(0, 6.5), breaks = seq(0, 6, by = 1)) +
+  scale_x_continuous(limits = c(0, 6.5), breaks = seq(0, 6, by = 1)) +
   labs(
-    title = "Average score of self-study resources",
+    title = "Average use of self-study resources",
+    subtitle = nlbl_resources,
     x = "Average score (1 = Never, 6 = Always)",
     y = NULL
   ) +
