@@ -400,10 +400,6 @@ p
 
 ## Use of self study resources
 
-### Resources  - Andel på nivå 5 och 6
-
-@fig-resources_5_6 displays the 7 most commonly used self study resources, with the proportion of students stating level 5 or 6, split by subject/faculty-combination.
-
 ```{r}
 #| label: common_resources_setup
 #| echo: false
@@ -428,7 +424,7 @@ item_short <- c(
   Resurs_Likert_17 = "Other student's notes",
   Resurs_Likert_18 = "tekniskfysik.org",
   Resurs_Likert_19 = "Library",
-  Resurs_Likert_20 = "Frågeforum (MC)",
+  Resurs_Likert_20 = "FAQ (MC)",
   Resurs_Likert_21 = "Other online forum",
   Resurs_Likert_22 = "Email to teacher",
   Resurs_Likert_23 = "Other resource 1",
@@ -436,6 +432,50 @@ item_short <- c(
 )
 ```
 
+
+### Average use of resources
+
+```{r}
+#| label: fig-resources_mean
+#| fig-width: 9
+#| fig-height: 6
+#| message: false
+#| warning: false
+#| fig-cap: "Average use of self-study resources"
+
+# Calculate mean for all Resurs_Likert columns, excluding "Other resource"
+mean_resources <- enkat_eng |>
+  select(starts_with("Resurs_Likert_"), -ends_with("_bin")) |>
+  summarise(across(everything(), ~mean(as.numeric(.), na.rm = TRUE))) |>
+  pivot_longer(everything(), names_to = "resource", values_to = "mean_score") |>
+  filter(!str_detect(resource, "Resurs_Likert_23|Resurs_Likert_24")) |>
+  mutate(
+    resource_label = item_short[resource],
+    resource_label = fct_reorder(resource_label, mean_score, .desc = FALSE),
+    usage_category = case_when(
+      mean_score >= 4 ~ "High use",
+      mean_score >= 3 ~ "Medium use",
+      TRUE ~ "Low use"
+    ),
+    usage_category = factor(usage_category, levels = c("High use", "Medium use", "Low use"))
+  )
+
+ggplot(mean_resources, aes(x = mean_score, y = resource_label, fill = usage_category)) +
+  geom_col(color = "black") +
+  geom_text(aes(x = mean_score, label = sprintf("%.1f", mean_score)), hjust = -0.1, vjust = 0.5, size = 5) +
+  scale_fill_manual(values = c("High use" = "#005a32", "Medium use" = "#41ab5d", "Low use" = "#bae4b3"), guide = "none") +
+#  scale_x_continuous(limits = c(0, 6.5), breaks = seq(0, 6, by = 1)) +
+  labs(
+    title = "Average score of self-study resources",
+    x = "Average score (1 = Never, 6 = Always)",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+### Proportion at level 5 och 6
+
+@fig-resources_5_6 displays the 7 most commonly used self study resources, with the proportion of students stating level 5 or 6, split by subject/faculty-combination.
 
 ```{r}
 subj_fac_n <- enkat_eng |> 
