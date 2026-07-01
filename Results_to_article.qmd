@@ -4,6 +4,9 @@ author: "Linda Hartman and Sara Maad Sasane"
 format: 
   html:
     embed-resources: true
+    number-sections: false
+    fig-cap-location: bottom
+fig-cap-prefix: "Figure"
 echo: false
 editor_options: 
   chunk_output_type: console
@@ -51,7 +54,8 @@ Free text answers are not included in this report.
 This table gives an overview over the different courses, how they are distributed on faculty and subject, and the speed (% of full time) at which they are given.
 
 ```{r}
-#| label: course_table
+#| label: tbl-course_table
+#| tbl-cap: "Overview of mathematics courses by faculty, subject, and speed of delivery"
 
 ct |> 
   select(course_code, course_name_abbr, faculty_abbr, subject,year,speed,comments) |> 
@@ -63,9 +67,11 @@ For analysis of most common resources we include all answers, but for analysis o
 
 ## Goals for studying mathematics
 
+@fig-goals_bar shows the distribution of student goals for studying mathematics across the survey respondents.
+
 ```{r}
-#| label: goals_bar
-#| caption: Goals for studying this mathematic
+#| label: fig-goals_bar
+#| fig-cap: "Goals for studying mathematics"
 past_lbl=item_labels |> select(var,item_eng) |> 
 filter(str_starts(var,"Påstående")) |> 
     filter(parse_number(var)!=13) |> 
@@ -133,12 +139,15 @@ plotdata |>
   #  legend.box.just = "top",
     legend.direction = "horizontal",
     plot.margin = margin(5.5, 5.5, 5.5, 30)
-  )
+  ) -> p_goals
+
+
 
 
 ggsave("Figures/article/goals.emf",width=13,height=6)
 ggsave("Figures/article/goals.svg",width=13,height=6)
 
+p_goals
 ```
 
 ## Total hours spent on the course
@@ -180,9 +189,10 @@ ggsave("Figures/article/studytime.svg",width=13,height=6)
 ## Results, time on different activities
 
 ### Time allocated to scheduled activities (%)
-The stated proportion of time allocated to scheduled activities is reported for all students with data on which course they took (1 student lacking that info).
+The stated proportion of time allocated to scheduled activities is reported for all students with data on which course they took (1 student lacking that info). @fig-violin_all displays this distribution across different subject and faculty combinations.
 ```{r}
-#| label: violin_all
+#| label: fig-violin_all
+#| fig-cap: "Time spent in scheduled hours per week by subject"
 
 seldata =  enkat_eng |> filter(!is.na(subj_fac)) 
 plotdata= bind_rows(
@@ -245,16 +255,15 @@ As the meaning of *exercise classes*, *seminars* and *computer exercises* differ
 We did not include hours of supplemental instruction in the calculations, as that is run by older students without common planning with the course teachers, and is not considered teaching, but rather as support between students.
 
 ### Lectures, Exercises, and Combined Hours
-Below we report the number of hours for Lectures, Exercise+Seminar (that includes computer exercises and other teacher-led activities), and the sum of both (= all teacher-led activities).
-
-
+@fig-att_lect_exc presents the number of hours for Lectures, Exercise+Seminar (that includes computer exercises and other teacher-led activities), and the sum of both (= all teacher-led activities) by subject and faculty combination.
 
 ```{r}
-#| label: att_lect_exc
+#| label: fig-att_lect_exc
 #| message: false
 #| warning: false
 #| fig-height: 10
 #| fig-width: 8
+#| fig-cap: "Time spent in lectures and exercises by subject"
 
 sel_data <- enkat_eng |>
   filter(!is.na(subj_fac), 
@@ -356,7 +365,7 @@ excluded_counts <- bind_rows(
   mutate(label = if_else(n_out > 0, paste0("n_out = ", n_out), NA_character_))
 
 # Create plot with x-scale 0-20 for all columns
-plot_data |>
+p <- plot_data |>
   ggplot(aes(x = hours, fill = group, y = after_stat(100 * count / tapply(count, PANEL, sum)[PANEL]))) +
   geom_histogram(breaks = c(-0.5, 0.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5, 14.5, 16.5, 18.5, 20.5, 22.5, 24.5),
                  color = 'black', linewidth = 0.3) +
@@ -383,6 +392,8 @@ plot_data |>
 
 ggsave("Figures/article/hist_lect_exc.emf", width = 10, height = 12)
 ggsave("Figures/article/hist_lect_exc.png", width = 10, height = 12)
+
+p
 ```
 
 
@@ -391,12 +402,11 @@ ggsave("Figures/article/hist_lect_exc.png", width = 10, height = 12)
 
 ### Resources  - Andel på nivå 5 och 6
 
-
-A graph of the most commonly used self study resources. The proportion of students stating level 5 or 6 for 7 most used resources, split by subject/faculty-combination.
+@fig-resources_5_6 displays the 7 most commonly used self study resources, with the proportion of students stating level 5 or 6, split by subject/faculty-combination.
 
 ```{r}
-#| label: common_resources
-
+#| label: common_resources_setup
+#| echo: false
 
 item_short <- c(
   Resurs_Likert_1  = "Course literature",
@@ -490,22 +500,23 @@ plotdata <- plotdata |>
 
 
 ```{r}
-#| label: resources_5_6
+#| label: fig-resources_5_6
 #| fig-width: 9
 #| fig-height: 6
 #| message: false
 #| warning: false
+#| fig-cap: "Commonly used self-study resources by subject with overall usage levels (ratings 5-6)"
 
-                                      
-set.seed(123)
-plotdata |>
-    ggplot(aes(x=pct, y=subj_fac, color=item_label)) +
-    geom_path(aes(y=fct_rev(subj_fac),group=item_label), alpha=0.7, linewidth=1.2) +
-    geom_jitter(aes(y=fct_rev(subj_fac)), size=5, width=0.005, height=0, alpha=0.8) +
-    geom_point(
-      data = overall,
-      aes(group=NA),
-      shape = 18, size = 8
+set.seed(1)
+
+p <- plotdata |>
+    ggplot(aes(x=pct, y=fct_rev(subj_fac), color=item_label)) +
+    geom_path(aes(group=item_label), alpha=0.7, linewidth=1.2) +
+    geom_jitter(size=5, width=0, height=0.05, alpha=0.8) +
+    geom_jitter(
+      data = overall |> mutate(subj_fac = fct_rev(subj_fac)),
+      aes(y=subj_fac, group=NA),
+      shape = 18, size = 8,width=0, height=0.05,alpha=0.8
     ) +
     labs(title='Commonly used self study resources', 
          subtitle = 'Overall percentage for level 5 and 6 in parentheses',
@@ -516,22 +527,31 @@ plotdata |>
     scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
     scale_y_discrete(drop = FALSE) +
     theme_minimal(base_size = 15)
-  
-  
+
+
+p
+
 
 ggsave("Figures/article/resources_high.emf",width=9,height=6)
 ggsave("Figures/article/resources_high.svg",width=9,height=6)
 ```
 
+```{r}
+
+```
+
 ### AI use 
 
-Results from VAR05_12 "Generative AI (eg.  Copilot, ChatGPT)"
+Results from VAR05_12 "Generative AI (eg.  Copilot, ChatGPT)" are shown in @fig-AI_use.
 
 ```{r}
-#| label: AI_use
+#| label: fig-AI_use
+#| fig-cap: "Frequency of generative AI usage among students"
+
 nlbl= paste0("n = ", enkat_eng |> filter(!is.na(Resurs_Likert_12)) |> count()) 
 cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
-enkat_eng |>
+
+p <- enkat_eng |>
   filter(!is.na(Resurs_Likert_12)) |>
   count(Resurs_Likert_12) |> 
   mutate(pct = n / sum(n), n_total = sum(n)) |>
@@ -550,9 +570,10 @@ enkat_eng |>
   theme(legend.position = "none",
         plot.caption=element_text(size=10))
 
-
 ggsave("Figures/article/AI_use_all.emf",width=12,height=6)
 ggsave("Figures/article/AI_use_all.svg",width=12,height=6)
+
+p
 
 ```
 
