@@ -22,10 +22,6 @@ library(gt)
 
 ## Data
 
-Data from 585 respondents to a survey. Data was exported to SPSS and cleaned in script `dm.R`. 
-
-Free text answers are not included here.
-
 
 ```{r}
 #| label: data
@@ -35,6 +31,16 @@ item_labels <- readRDS('Data/item_labels.rds')
 ct <- readRDS('data/course_table.rds')
 ```
 
+We had `r  dim(enkat_eng)[1]` respondents to the survey. Data was exported to SPSS and cleaned in script `dm.R`. 
+One student had missing course-code, and is excluded from all analysis separated for course or subject, resulting in `r  dim(enkat_eng |> filter(!is.na(course_code)))[1]` students for these analyses.
+
+
+For all discussion, unless distinctly stated, reference to *mathematics* courses includes both *mathematics* and *mathematical statistics*, unless distinctly stated otherwise (such as in graphs where we split *mathematics* from *mathematical statistics*).
+
+Free text answers are not included in this report.
+
+
+
 
 ```{r}
 #| label: skim
@@ -42,7 +48,8 @@ ct <- readRDS('data/course_table.rds')
 
 ```
 ## Table of courses/subject and faculty
-This table gives an overview over the different courses, how they are distributed on faculty and subject
+This table gives an overview over the different courses, how they are distributed on faculty and subject, and the speed (% of full time) at which they are given.
+
 ```{r}
 #| label: course_table
 
@@ -52,12 +59,13 @@ ct |>
   gt()
 ```
 
+For analysis of most common resources we include all answers, but for analysis on hours of time spent on the course in total, and on scheduled events we for comparability include only courses given at 50% of full speed.
 
 ## Goals for studying mathematics
 
 ```{r}
 #| label: goals_bar
-
+#| caption: Goals for studying this mathematic
 past_lbl=item_labels |> select(var,item_eng) |> 
 filter(str_starts(var,"Påstående")) |> 
     filter(parse_number(var)!=13) |> 
@@ -135,11 +143,12 @@ ggsave("Figures/article/goals.svg",width=13,height=6)
 
 ## Total hours spent on the course
 
-For all 
+The distribution of total hours spent in the course is presented for all students taking a (mathematics) course at speed = 50%:
 ```{r}
 
-nlbl_all= paste0(" n = ", enkat_eng |>count()) 
+nlbl_all= paste0(" n = ", enkat_eng |> filter(!is.na(course_code),speed ==0.5) |> count()) 
 p_total_all <- enkat_eng |>
+  filter(!is.na(course_code)) |> 
   count(Tid_totalt_timmar) |>
   mutate(pct = n / sum(n), n_total = sum(n)) |>
   ungroup() |>
@@ -155,7 +164,8 @@ p_total_all <- enkat_eng |>
                           The question refers to the total time spent, 
                           consisting of scheduled time as well as 
                           self study.",width=110),
-       subtitle = paste0('Scheduled teaching + self studies, ',nlbl_all))  +
+       subtitle = paste0('Courses at 50% speed, ',nlbl_all))  +
+       #subtitle = paste0('Scheduled teaching + self studies, ',nlbl_all))  +
   theme_minimal(base_size=14) +
   theme(legend.position = "none")
 p_total_all
@@ -170,6 +180,7 @@ ggsave("Figures/article/studytime.svg",width=13,height=6)
 ## Results, time on different activities
 
 ### Time allocated to scheduled activities (%)
+The stated proportion of time allocated to scheduled activities is reported for all students with data on which course they took (1 student lacking that info).
 ```{r}
 #| label: violin_all
 
@@ -216,20 +227,41 @@ plotdata |>
 ```
 
 ### Time allocated to study (hours) during last week on course activities
-Description: For each of the activities below, please tell us approximately how many hours during the last week you spent on each of the listed activities in this course on average per week. 
-The question had six sub-questions (variables below), one for each activity
 
+
+Of the `r enkat_eng |> filter(!is.na(subj_fac), speed==0.5) |>  count()` students taking a mathematics course at 50% speed, 
+`r enkat_eng |> filter(!is.na(subj_fac), speed==0.5) |> filter_out(!is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6)) |>  count()`
+ did not provide data on hours spent on different scheduled activities. Thus the following graphs represent 
+`r enkat_eng |> filter(!is.na(subj_fac), speed==0.5, !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),  !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6)) |>  count()` 
+students.
+           
+The question(s) that the students answered was:           
+*For each of the activities below, please tell us approximately how many hours during the last week you spent on each of the listed activities in this course on average per week.* 
+
+The question had six sub-questions, one for each activity (Lectures, Seminars, Exercise classes, Supplemental instruction, Computer exercises, Other teacher-led activity).
+
+As the meaning of *exercise classes*, *seminars* and *computer exercises* differ between courses we report the sum of them together.
+
+We did not include hours of supplemental instruction in the calculations, as that is run by older students without common planning with the course teachers, and is not considered teaching, but rather as support between students.
 
 ### Lectures, Exercises, and Combined Hours
+Below we report the number of hours for Lectures, Exercise+Seminar (that includes computer exercises and other teacher-led activities), and the sum of both (= all teacher-led activities).
+
+
+
 ```{r}
 #| label: att_lect_exc
+#| message: false
+#| warning: false
+#| fig-height: 10
+#| fig-width: 8
 
 sel_data <- enkat_eng |>
   filter(!is.na(subj_fac), 
+         speed==0.5,
          !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
-         !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),
-         course_code != 'FMSF80') |>
-  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + Tid_uppd_timmar_5)
+         !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),) |>
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + Tid_uppd_timmar_5 + Tid_uppd_timmar_6)
 
 nlbl <- paste0("n = ", sel_data |> count() |> pull(n))
 
@@ -341,7 +373,7 @@ plot_data |>
             aes(x = 19, y = Inf, label = label, fill = NULL),
             vjust = 1.2, hjust = 0.9, size = 3.5, fontface = "italic") +
   labs(title = 'Attendance at Lectures and Exercises',
-       subtitle = paste0('Course FMSF80 excluded, ', nlbl),
+       subtitle = paste0('Courses at speed = 50%, ', nlbl),
        x = "Time (hours)",
        y = "Percentage (%)") +
   theme_minimal(base_size = 13) +
@@ -357,18 +389,14 @@ ggsave("Figures/article/hist_lect_exc.png", width = 10, height = 12)
 
 ## Use of self study resources
 
-### Resurser  - Andel på nivå 5 och 6
+### Resources  - Andel på nivå 5 och 6
 
 
-A graph of common self study resources.  Proportion that marks level 5 or 6, split by subject/faculty-combination.
+A graph of the most commonly used self study resources. The proportion of students stating level 5 or 6 for 7 most used resources, split by subject/faculty-combination.
 
 ```{r}
 #| label: common_resources
-# 
-# enkat |> count(subj_fac,Resurs_Likert_1_bin) |>
-#   filter(!is.na(Resurs_Likert_1_bin)) |> 
-#   group_by(subj_fac) |>
-#   mutate(total=sum(n),pct=n/total)
+
 
 item_short <- c(
   Resurs_Likert_1  = "Course literature",
@@ -407,16 +435,20 @@ subj_fac_n <- enkat_eng |>
 
 
 plotdata <- enkat_eng |>
+  select(subj_fac,starts_with("Resurs_Likert")) |>
+  filter(!is.na(subj_fac)) |>
   pivot_longer(
     matches("^Resurs_Likert_\\d+_bin$"),
     names_to  = "item",
     values_to = "bin"
-  ) |>
+  ) |> 
   filter(item %in% paste0("Resurs_Likert_", 
                           c(1, 2, 5, 8, 12, 16, 18),
                           "_bin")) |>
   filter(!is.na(bin), !is.na(subj_fac)) |>
   count(subj_fac, item, bin) |>
+  # Set pct to 0 for missing combinations
+   complete(subj_fac, item, bin, fill = list(n=0)) |> 
   group_by(subj_fac, item) |>
   mutate(total = sum(n), pct = n / total) |>
   ungroup() |>
@@ -425,7 +457,7 @@ plotdata <- enkat_eng |>
   mutate(item_label = item_short[
     str_remove(item, "_bin$")
     ]) 
-  
+ 
   # Calculate total sample size for overall
   overall_n <- enkat_eng |> 
     filter(!is.na(subj_fac)) |> 
@@ -435,46 +467,68 @@ plotdata <- enkat_eng |>
     summarise(n = sum(n), total = sum(total), .by = item_label) |>
     mutate(pct = n / total,
            subj_fac = factor(paste0("Overall (n=", overall_n, ")"), 
-                            levels = c(levels(plotdata$subj_fac), paste0("Overall (n=", overall_n, ")"))))
-
-  plotdata_full <- bind_rows(
-    plotdata |> mutate(subj_fac = fct_expand(subj_fac, "Overall")),
-    overall
+                            levels = c(levels(plotdata$subj_fac), 
+                                       paste0("Overall (n=", overall_n, ")"))),
+           item_label0 = fct_reorder(item_label, pct, .desc = TRUE)) |> 
+    mutate(
+    item_label = factor(paste0(item_label0, " (", round(pct * 100), "%)")),
+    item_label = fct_reorder(item_label, pct, .desc = TRUE)) 
+   
+  
+  
+plotdata <- plotdata |>
+  mutate(
+    item_label = factor(item_label, levels = levels(overall$item_label0),labels=levels(overall$item_label))
   )
+
+#  plotdata_full <- bind_rows(
+#    plotdata |> mutate(subj_fac = fct_expand(subj_fac, "Overall")),
+#    overall
+#  )
+  
 ```
 
 
 ```{r}
-plotdata_full |>
-    filter(subj_fac != "Overall") |>
-    arrange(subj_fac) |>
-    ggplot(aes(x=pct, y=subj_fac, color=item_label, group=item_label)) +
-    geom_path(alpha=0.7, linewidth=1.2) +
-    geom_jitter(size=5, width=0.005, height=0, alpha=0.8) +
+#| label: resources_5_6
+#| fig-width: 9
+#| fig-height: 6
+#| message: false
+#| warning: false
+
+                                      
+set.seed(123)
+plotdata |>
+    ggplot(aes(x=pct, y=subj_fac, color=item_label)) +
+    geom_path(aes(y=fct_rev(subj_fac),group=item_label), alpha=0.7, linewidth=1.2) +
+    geom_jitter(aes(y=fct_rev(subj_fac)), size=5, width=0.005, height=0, alpha=0.8) +
     geom_point(
-      data = filter(plotdata_full, str_detect(subj_fac, "^Overall")),
+      data = overall,
+      aes(group=NA),
       shape = 18, size = 8
     ) +
     labs(title='Commonly used self study resources', 
-         x = "Percentage for level 5+6 (1 = Never, 6 = Always)", 
+         subtitle = 'Overall percentage for level 5 and 6 in parentheses',
+         x = "Percentage for level 5+6\n (1 = Never, 6 = Always)", 
          y = NULL, 
          color = NULL,
          ) +
     scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
-    scale_y_discrete(limits = c(rev(levels(plotdata$subj_fac)), paste0("Overall (n=", overall_n, ")")), 
-                     drop = FALSE) +
+    scale_y_discrete(drop = FALSE) +
     theme_minimal(base_size = 15)
   
   
 
-ggsave("Figures/resources_high.emf",width=9,height=6)
-ggsave("Figures/resources_high.svg",width=9,height=6)
+ggsave("Figures/article/resources_high.emf",width=9,height=6)
+ggsave("Figures/article/resources_high.svg",width=9,height=6)
 ```
 
+### AI use 
 
 ## Appendix
 ### Attendance at scheduled hours 
-Alternatives with lectures and exercises separately (no total). Code (commented) is available here. 
+Alternatives with lectures and exercises separately (no total). Code (commented out) is available here in the qmd-file. 
+
 #### Lectures
 Attendance at lectures last week
 ```{r}
