@@ -525,6 +525,41 @@ ggsave("Figures/article/resources_high.svg",width=9,height=6)
 
 ### AI use 
 
+Results from VAR05_12 "Generative AI (eg.  Copilot, ChatGPT)"
+
+```{r}
+#| label: AI_use
+nlbl= paste0("n = ", enkat_eng |> filter(!is.na(Resurs_Likert_12)) |> count()) 
+cap=item_labels |> filter(var=="Resurs_Likert_12") |> pull(question)
+enkat_eng |>
+  filter(!is.na(Resurs_Likert_12)) |>
+  count(Resurs_Likert_12) |> 
+  mutate(pct = n / sum(n), n_total = sum(n)) |>
+  ungroup() |>
+  mutate(label = paste0(round(pct * 100), "% \n(n=", n, ")")) |>
+  ggplot(aes(x = Resurs_Likert_12, y = pct, fill = Resurs_Likert_12)) +
+  geom_col(color='black') +
+  geom_text(aes(label = label), vjust = -0.4, size = 5) +
+  scale_x_discrete( labels = c("Never", "","","", "", "Always"))+
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, .12))) +
+  scale_fill_brewer(palette = "Greens", direction = 1) +
+  labs(x = NULL, y = NULL,  title = "AI use",
+       caption = str_wrap(cap,width=100),
+       subtitle = nlbl)  +
+  theme_minimal(base_size=15) +
+  theme(legend.position = "none",
+        plot.caption=element_text(size=10))
+
+
+ggsave("Figures/article/AI_use_all.emf",width=12,height=6)
+ggsave("Figures/article/AI_use_all.svg",width=12,height=6)
+
+```
+
+
+
+
+
 ## Appendix
 ### Attendance at scheduled hours 
 Alternatives with lectures and exercises separately (no total). Code (commented out) is available here in the qmd-file. 
