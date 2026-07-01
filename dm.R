@@ -207,7 +207,7 @@ course_table <- tribble(
 
 dfe <- df |>
   select(-course_name) |>
-  left_join(course_table |> select(course_code, course_name), 
+  left_join(course_table |> select(course_code, course_name,speed), 
             by = "course_code") |>
   relocate(course_name, .after = course_code) |>
   mutate(
