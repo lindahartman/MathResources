@@ -3,7 +3,7 @@ title: "Resources for learning mathematics - results and figures for the publica
 author: "Linda Hartman and Sara Maad Sasane"
 format: 
   html:
-    embed-resources: true
+    embed-resources: true 
     number-sections: false
     fig-cap-location: bottom
 fig-cap-prefix: "Figure"
@@ -21,6 +21,21 @@ library(skimr)
 library(scales)
 library(patchwork)
 library(gt)
+
+
+```
+
+```{r}
+#| label: mytheme
+
+mytheme <- theme(
+  plot.title = element_text(size = 18),
+  plot.subtitle = element_text(size = 16),
+  plot.caption = element_text(size = 14),
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 16),
+  legend.text = element_text(size = 16)
+)
 ```
 
 ## Data
@@ -58,7 +73,7 @@ This table gives an overview over the different courses, how they are distribute
 #| tbl-cap: "Overview of mathematics courses by faculty, subject, and speed of delivery"
 
 ct |> 
-  select(course_code, course_name_abbr, faculty_abbr, subject,year,speed,comments) |> 
+  select(course_code, course_name_abbr, faculty_abbr, subject,year,speed,n_students,comments) |> 
   arrange(faculty_abbr,desc(subject)) |> 
   gt()
 ```
@@ -132,22 +147,19 @@ plotdata |>
   ) +
   scale_x_discrete(drop = FALSE) +
   guides(fill = guide_legend(reverse = FALSE, nrow = 1)) +
-  theme_minimal(base_size = 14) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=14),
+  theme_minimal(base_size = 14) +mytheme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=16),
     legend.position = "bottom",
    # legend.justification = "center",
   #  legend.box.just = "top",
     legend.direction = "horizontal",
     plot.margin = margin(5.5, 5.5, 5.5, 30)
-  ) -> p_goals
-
-
-
+  ) 
 
 ggsave("Figures/article/goals.emf",width=13,height=6)
 ggsave("Figures/article/goals.svg",width=13,height=6)
 
-p_goals
+# p_goals
 ```
 
 ## Total hours spent on the course
@@ -175,8 +187,13 @@ p_total_all <- enkat_eng |>
                           self study.",width=110),
        subtitle = paste0('Courses at 50% speed, ',nlbl_all))  +
        #subtitle = paste0('Scheduled teaching + self studies, ',nlbl_all))  +
-  theme_minimal(base_size=14) +
+  theme_minimal(base_size=16) +
+  mytheme +
   theme(legend.position = "none")
+  #       plot.caption = element_text(size=14),
+  #       axis.text.x = element_text(size = 16),
+  #       axis.text.y = element_text(size = 16),
+  #   legend.text = element_text(size = 16)) 
 p_total_all
 
 
@@ -211,7 +228,7 @@ nlbl=paste0(" n = ", plotdata |> filter(subj_fac != "Total") |> count())
 plotdata |>
   ggplot(aes(x = subj_fac, y = Tid_schema_proc, fill = subj_fac)) +
   geom_violin() +
-  geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum) +
+  geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum, size=10) +
   scale_color_manual(values = 
                        c("Total" = "white",
                          "Math LTH"   = "black",
@@ -232,7 +249,11 @@ plotdata |>
        The rest of the time is assumed to be self study.",
                           width=120)) +
   theme_minimal(base_size = 14) +
-  theme(legend.position = "none",plot.caption = element_text(size=10))
+  mytheme + 
+  theme(legend.position = "none")
+
+ggsave("Figures/article/prop_sched.emf",width=13,height=6)
+ggsave("Figures/article/prop_sched.svg",width=13,height=6)
 
 ```
 
@@ -364,8 +385,8 @@ excluded_counts <- bind_rows(
   mutate(group_label = factor(group_label, levels = unique(group_ns$group_label))) |>
   mutate(label = if_else(n_out > 0, paste0("n_out = ", n_out), NA_character_))
 
-# Create plot with x-scale 0-20 for all columns
-p <- plot_data |>
+# Create plot with x-scale 0-25 for all columns
+ plot_data |>
   ggplot(aes(x = hours, fill = group, y = after_stat(100 * count / tapply(count, PANEL, sum)[PANEL]))) +
   geom_histogram(breaks = c(-0.5, 0.5, 2.5, 4.5, 6.5, 8.5, 10.5, 12.5, 14.5, 16.5, 18.5, 20.5, 22.5, 24.5),
                  color = 'black', linewidth = 0.3) +
@@ -380,20 +401,26 @@ p <- plot_data |>
                     guide = "none") +
   geom_text(data = excluded_counts,
             aes(x = 19, y = Inf, label = label, fill = NULL),
-            vjust = 1.2, hjust = 0.9, size = 3.5, fontface = "italic") +
+            vjust = 1.2, hjust = 0.9, size = 4, fontface = "italic") +
   labs(title = 'Attendance at Lectures and Exercises',
        subtitle = paste0('Courses at speed = 50%, ', nlbl),
        x = "Time (hours)",
        y = "Percentage (%)") +
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 16) +
+   mytheme + 
   theme(panel.spacing = unit(0.5, "lines"),
         aspect.ratio = 1,
-        strip.text = element_text(face = "bold"))
+        strip.text = element_text(face = "bold"),
+        
+    #     plot.caption = element_text(size=14),
+    #     axis.text.x = element_text(size = 16),
+    #     axis.text.y = element_text(size = 16),
+    # legend.text = element_text(size = 16)
+    )
 
 ggsave("Figures/article/hist_lect_exc.emf", width = 10, height = 12)
 ggsave("Figures/article/hist_lect_exc.svg", width = 10, height = 12)
 
-p
 ```
 
 
@@ -470,7 +497,7 @@ nlbl_resources <- paste0("n = ", enkat_resources |> nrow())
 
 ggplot(mean_resources, aes(x = mean_score, y = resource_label, fill = usage_category)) +
   geom_col(color = "black") +
-  geom_text(aes(x = mean_score, label = sprintf("%.2f", mean_score)), hjust = -0.1, vjust = 0.5, size = 3) +
+  geom_text(aes(x = mean_score, label = sprintf("%.2f", mean_score)), hjust = -0.1, vjust = 0.5, size = 5) +
   scale_fill_manual(values = c("High use" = "#005a32", "Medium use" = "#41ab5d", "Low use" = "#bae4b3"), guide = "none") +
   scale_x_continuous(limits = c(0, 6.5), breaks = seq(0, 6, by = 1)) +
   labs(
@@ -479,7 +506,15 @@ ggplot(mean_resources, aes(x = mean_score, y = resource_label, fill = usage_cate
     x = "Average score (1 = Never, 6 = Always)",
     y = NULL
   ) +
-  theme_minimal(base_size = 13)
+  theme_minimal(base_size = 13) +
+  mytheme
+  # theme(
+  #   plot.title= element_text(size = 18),
+  #   plot.subtitle= element_text(size = 16),
+  #   plot.caption = element_text(size=14),
+  #   axis.text.x = element_text(size = 16),
+  #   axis.text.y = element_text(size = 16),
+  #   legend.text = element_text(size = 16))
 
 
 ggsave("Figures/article/resources_mean.emf",width=9,height=6)
@@ -560,7 +595,7 @@ plotdata <- plotdata |>
 #| warning: false
 #| fig-cap: "Commonly used self-study resources by subject with overall usage levels (ratings 5-6)"
 
-set.seed(1)
+set.seed(123)
 
 p <- plotdata |>
     ggplot(aes(x=pct, y=fct_rev(subj_fac), color=item_label)) +
@@ -579,7 +614,8 @@ p <- plotdata |>
          ) +
     scale_x_continuous(labels = scales::percent, limits = c(0, 1)) +
     scale_y_discrete(drop = FALSE) +
-    theme_minimal(base_size = 15)
+    theme_minimal(base_size = 15) +
+  mytheme
 
 
 p
@@ -621,12 +657,12 @@ p <- enkat_eng |>
        subtitle = nlbl)  +
   theme_minimal(base_size=15) +
   theme(legend.position = "none",
-        plot.caption=element_text(size=10))
-
+        plot.caption=element_text(size=10)) +
+ mytheme
+p
 ggsave("Figures/article/AI_use_all.emf",width=12,height=6)
 ggsave("Figures/article/AI_use_all.svg",width=12,height=6)
 
-p
 
 ```
 
