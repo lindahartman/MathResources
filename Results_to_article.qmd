@@ -419,7 +419,8 @@ sel_data <- enkat_eng |>
          speed==0.5,
          !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
          !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),) |>
-  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + Tid_uppd_timmar_5 + Tid_uppd_timmar_6)
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + 
+           Tid_uppd_timmar_5 + Tid_uppd_timmar_6)
 
 nlbl <- paste0("n = ", sel_data |> count() |> pull(n))
 
@@ -464,7 +465,8 @@ plot_data <- bind_rows(
     select(type, hours, group)
 ) |>
   mutate(
-    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", "MStat LTH", "MStat Sci")),
+    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", 
+                                     "MStat LTH", "MStat Sci")),
     type = factor(type, levels = c("Lectures", "Exercises", "Lect + Exerc"))
   ) |>
   left_join(group_ns |> select(group, group_label), by = "group") |>
@@ -551,9 +553,76 @@ ggsave("Figures/article/hist_lect_exc.svg", width = 10, height = 12)
 
 ```
 
-
 As an alternative consider a simplified graph showing only zero attendance vs any attendance:
+Alt1.
 
+```{r}
+att_subj_fac_data <- enkat_eng |>
+  filter(!is.na(subj_fac), 
+         speed==0.5,
+         !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
+         !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),) |>
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + 
+           Tid_uppd_timmar_5 + Tid_uppd_timmar_6,
+        Tid_lecture = Tid_uppd_timmar_1,
+        Tid_LE=Tid_exercise+Tid_lecture
+         ) |> 
+  select(ID,faculty,subj_abbr,Tid_exercise,Tid_lecture,Tid_LE) |> 
+  pivot_longer(cols=starts_with("Tid")) |> 
+  mutate(attend=factor(ifelse(value>0,"Yes","No"),levels=c("No","Yes")),
+         subj_abbr = factor(subj_abbr, levels=c("Math","MStat"),labels=c("Mathematics","M. Statistics")),
+          name=factor(gsub("Tid_","",name),levels=c("lecture","exercise","LE"),
+                           labels=c("L","E","L+E")))
+
+facet_n <- att_subj_fac_data |>
+  summarise(
+    n = n_distinct(ID),
+    .by = c(faculty, subj_abbr)
+  )
+
+
+
+att_subj_fac_data |>
+  ggplot(aes(x = name, fill = attend)) +
+  geom_bar(
+    position = "fill",
+    color = "black",
+    linewidth = 0.3
+  ) +
+  facet_grid(faculty ~ subj_abbr) +
+  # scale_y_continuous(
+  #   labels = \(x) x * 100
+  # ) +
+  scale_y_continuous(
+  breaks = seq(0, 1, by = 0.2),
+  labels = seq(0, 100, by = 20)
+)+
+  labs(
+    x = NULL,
+    y = "Percent",
+    fill = "Attendance"
+  ) + 
+  geom_text(
+    data = facet_n,
+    aes(x = 2, y = 1.07, label = paste0("n = ", n)),
+    inherit.aes = FALSE,
+    vjust = 0 ) +
+  coord_cartesian(ylim = c(0, 1.12), clip = "off") +
+  theme_minimal(base_size = 16) +
+   mytheme + 
+  theme(legend.position = "bottom") + 
+scale_fill_manual(
+  values = c(
+    "Yes" = "#41AB5D",
+    "No"  = "#BDBDBD"
+  ),
+  breaks = c("Yes", "No")
+)
+
+
+```
+
+Alt 2:
 ```{r}
 #| label: fig-att01_lect_exc
 #| message: false
@@ -577,8 +646,10 @@ plot_data |>
     color = "black",
     linewidth = 0.3
   ) +
-  scale_y_continuous(labels = scales::label_percent()) +
-   
+ # scale_y_continuous(labels = scales::label_percent()) +
+   scale_y_continuous(
+  labels = \(x) x * 100
+) +
   scale_x_discrete(
     labels = c(
       "Lectures" = "L",
