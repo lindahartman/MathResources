@@ -1,0 +1,28 @@
+Variable(s)	Question
+VAR00	Vilken utbildning läser du?
+VAR01	Vilken kurs läser du?
+VAR02	Totalt antal timmar matematikstudier senaste veckan
+VAR03	Andel av studietid ägnad åt schemalagd undervisning (%)
+VAR04_1–6	Antal timmar schemalagd undervisning per typ (föreläsningar, seminarier, räkneövningar, etc.)
+VAR05_1–24	Hur ofta används olika resurser vid självstudier? (Aldrig–Alltid)
+VAR06_1–29	Vilka fem resurser har använts mest? (ranking)
+VAR07_1–13	I vilken grad håller du med om påståenden om dina studievanor? (Inte alls–Fullständigt)
+VAR08	Har du något du vill tillägga eller kommentera?
+
+
+## VAR07_ — sub-item text is clear, appearing after - in each label. They measure reasons for studying (motivation):
+
+Var	Item
+VAR07_1	Jag studerar för att jag tycker om matematik
+VAR07_2	Jag studerar för att få ett högt betyg
+VAR07_3	Jag studerar för att klara kursen
+VAR07_4	Jag studerar för att förstå kursens teori
+VAR07_5	Jag studerar för att öka mina räknefärdigheter
+VAR07_6	Jag studerar för att öka min förmåga att tillämpa matematik
+VAR07_7	Jag studerar för att öka min analytiska förmåga
+VAR07_8	Jag studerar för att utveckla mitt matematiska tankesätt
+VAR07_9	Jag studerar för att tillfredsställa min intellektuella nyfikenhet
+VAR07_10	Jag studerar för att öppna mitt sinne
+VAR07_11	Jag studerar för att klara mitt framtida yrke
+VAR07_12	Jag studerar för att kursen ingår i en examen som jag vill ta ut
+VAR07_13	Annat skäl för studier
