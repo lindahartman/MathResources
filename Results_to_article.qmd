@@ -113,7 +113,7 @@ past_lbl[10] <- "Open my mind"
 past_lbl[11] <- "Prepare for future work"
 past_lbl[12] <- "Obtain my degree"
 
-plotdata= enkat_eng |> 
+plot_data= enkat_eng |> 
   select(ID,prog,faculty,course_code,subject,course_gr,starts_with("Påstående")) |> 
   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
   filter(parse_number(Statement)!=13,!is.na(value)) |> 
@@ -127,9 +127,9 @@ plotdata= enkat_eng |>
               # max(percent * as.numeric(value=="Fullständigt"),na.rm=TRUE)) 
                 max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
 
-statem_order=plotdata |> select(Statement_f, value,percent_full) # for separated plots below
+statem_order=plot_data |> select(Statement_f, value,percent_full) # for separated plots below
 
-plotdata |> 
+plot_data |> 
   ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
              y = percent, 
              fill = fct_rev(value))) +
@@ -178,7 +178,7 @@ ggsave("Figures/article/goals.svg",width=13,height=6)
 
 
 
-plotdata_fac= enkat_eng |> 
+plot_data_fac= enkat_eng |> 
   select(ID,prog,faculty,course_code,subject,course_gr,starts_with("Påstående")) |> 
   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
   filter(parse_number(Statement)!=13,!is.na(value)) |> 
@@ -193,7 +193,7 @@ plotdata_fac= enkat_eng |>
 #                max(percent * as.numeric(value=="Completely"),na.rm=TRUE)) 
 
 
-plotdata_fac |> left_join(statem_order) |> 
+plot_data_fac |> left_join(statem_order) |> 
   ggplot(aes(x = fct_reorder(Statement_f,-percent_full), 
              y = percent, 
              fill = fct_rev(value))) +
@@ -239,7 +239,7 @@ ggsave("Figures/article/goals_faculty.svg",width=13,height=12)
 #| fig-height: 13
 
 # 
-# plotdata_fac= enkat_eng |> 
+# plot_data_fac= enkat_eng |> 
 #   select(ID,prog,faculty,course_code,subject,course_gr,starts_with("Påstående")) |> 
 #   pivot_longer(starts_with("Påstående"),names_to="Statement")  |> 
 #   filter(parse_number(Statement)!=13,!is.na(value)) |> 
@@ -251,7 +251,7 @@ ggsave("Figures/article/goals_faculty.svg",width=13,height=12)
 #   mutate(percent = n / sum(n)) 
 
 
-plotdata_fac |> left_join(statem_order) |> 
+plot_data_fac |> left_join(statem_order) |> 
   ggplot(aes(x=faculty, 
              y = percent, 
              fill = fct_rev(value))) +
@@ -340,7 +340,7 @@ The stated proportion of time allocated to scheduled activities is reported for 
 #| fig-cap: "Time spent in scheduled hours per week by subject"
 
 seldata =  enkat_eng |> filter(!is.na(subj_fac)) 
-plotdata= bind_rows(
+plot_data= bind_rows(
   seldata |> mutate(subj_fac = "Total"),
   seldata) |>
   mutate(subj_fac = factor(subj_fac,
@@ -348,15 +348,15 @@ plotdata= bind_rows(
 
 
 
-plotdata_sum <- plotdata |> group_by(subj_fac) |> 
+plot_data_sum <- plot_data |> group_by(subj_fac) |> 
   summarize(n=n(),nlab=paste0("n = \n",n),Tid_schema_proc = mean(Tid_schema_proc))
 
-nlbl=paste0(" n = ", plotdata |> filter(subj_fac != "Total") |> count()) 
+nlbl=paste0(" n = ", plot_data |> filter(subj_fac != "Total") |> count()) 
 
-plotdata |>
+plot_data |>
   ggplot(aes(x = subj_fac, y = Tid_schema_proc, fill = subj_fac)) +
   geom_violin() +
-  geom_text(aes(label = nlab, color = subj_fac), data = plotdata_sum, size=10) +
+  geom_text(aes(label = nlab, color = subj_fac), data = plot_data_sum, size=10) +
   scale_color_manual(values = 
                        c("Total" = "white",
                          "Math LTH"   = "black",
@@ -419,7 +419,8 @@ sel_data <- enkat_eng |>
          speed==0.5,
          !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
          !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),) |>
-  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + Tid_uppd_timmar_5 + Tid_uppd_timmar_6)
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + 
+           Tid_uppd_timmar_5 + Tid_uppd_timmar_6)
 
 nlbl <- paste0("n = ", sel_data |> count() |> pull(n))
 
@@ -464,7 +465,8 @@ plot_data <- bind_rows(
     select(type, hours, group)
 ) |>
   mutate(
-    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", "MStat LTH", "MStat Sci")),
+    group = factor(group, levels = c("Total", "Math LTH", "Math Sci", 
+                                     "MStat LTH", "MStat Sci")),
     type = factor(type, levels = c("Lectures", "Exercises", "Lect + Exerc"))
   ) |>
   left_join(group_ns |> select(group, group_label), by = "group") |>
@@ -551,6 +553,142 @@ ggsave("Figures/article/hist_lect_exc.svg", width = 10, height = 12)
 
 ```
 
+As an alternative consider a simplified graph showing only zero attendance vs any attendance:
+Alt1.
+
+```{r}
+att_subj_fac_data <- enkat_eng |>
+  filter(!is.na(subj_fac), 
+         speed==0.5,
+         !is.na(Tid_uppd_timmar_1), !is.na(Tid_uppd_timmar_2), !is.na(Tid_uppd_timmar_3),
+         !is.na(Tid_uppd_timmar_4), !is.na(Tid_uppd_timmar_5), !is.na(Tid_uppd_timmar_6),) |>
+  mutate(Tid_exercise = Tid_uppd_timmar_2 + Tid_uppd_timmar_3 + 
+           Tid_uppd_timmar_5 + Tid_uppd_timmar_6,
+        Tid_lecture = Tid_uppd_timmar_1,
+        Tid_LE=Tid_exercise+Tid_lecture
+         ) |> 
+  select(ID,faculty,subj_abbr,Tid_exercise,Tid_lecture,Tid_LE) |> 
+  pivot_longer(cols=starts_with("Tid")) |> 
+  mutate(attend=factor(ifelse(value>0,"Yes","No"),levels=c("No","Yes")),
+         subj_abbr = factor(subj_abbr, levels=c("Math","MStat"),labels=c("Mathematics","M. Statistics")),
+          name=factor(gsub("Tid_","",name),levels=c("lecture","exercise","LE"),
+                           labels=c("L","E","L+E")))
+
+facet_n <- att_subj_fac_data |>
+  summarise(
+    n = n_distinct(ID),
+    .by = c(faculty, subj_abbr)
+  )
+
+
+
+att_subj_fac_data |>
+  ggplot(aes(x = name, fill = attend)) +
+  geom_bar(
+    position = "fill",
+    color = "black",
+    linewidth = 0.3
+  ) +
+  facet_grid(faculty ~ subj_abbr) +
+  # scale_y_continuous(
+  #   labels = \(x) x * 100
+  # ) +
+  scale_y_continuous(
+  breaks = seq(0, 1, by = 0.2),
+  labels = seq(0, 100, by = 20)
+)+
+  labs(
+    x = NULL,
+    y = "Percent",
+    fill = "Attendance"
+  ) + 
+  geom_text(
+    data = facet_n,
+    aes(x = 2, y = 1.07, label = paste0("n = ", n)),
+    inherit.aes = FALSE,
+    vjust = 0 ) +
+  coord_cartesian(ylim = c(0, 1.12), clip = "off") +
+  theme_minimal(base_size = 16) +
+   mytheme + 
+  theme(legend.position = "bottom") + 
+scale_fill_manual(
+  values = c(
+    "Yes" = "#41AB5D",
+    "No"  = "#BDBDBD"
+  ),
+  breaks = c("Yes", "No")
+)
+
+
+```
+
+Alt 2:
+```{r}
+#| label: fig-att01_lect_exc
+#| message: false
+#| warning: false
+#| fig-height: 10
+#| fig-width: 8
+#| fig-cap: "Attendance/non-attendance lectures and exercises by subject"
+
+# Use plot_data from above
+plot_data <- plot_data |> 
+  mutate(attendance = factor(hours>0,
+                             levels=c(FALSE,TRUE),
+                             labels = c("No","Yes"))
+         )
+
+
+plot_data |>
+  ggplot(aes(x = type, fill = attendance)) +
+  geom_bar(
+    position = "fill",
+    color = "black",
+    linewidth = 0.3
+  ) +
+ # scale_y_continuous(labels = scales::label_percent()) +
+   scale_y_continuous(
+  labels = \(x) x * 100
+) +
+  scale_x_discrete(
+    labels = c(
+      "Lectures" = "L",
+      "Exercises" = "E",
+      "Lect + Exerc" = "L+E"
+    )
+  ) +
+  facet_grid(rows=vars(group_label) , scales = "free_y") +
+  # scale_fill_manual(values = 
+  #                     c("Total"     = "#005a32",
+  #                       "Math LTH"   = "#238b45",
+  #                       "Math Sci"    = "#41ab5d",
+  #                       "MStat LTH" = "#74c476",
+  #                       "MStat Sci"  = "#bae4b3"),
+  #                   guide = "none") +
+   labs(title = 'Attendance at Lectures and Exercises',
+       subtitle = paste0('Courses at speed = 50%, ', nlbl),
+       x=NULL,
+       y = "Percentage (%)",
+       fill="Attendance") +
+  theme_minimal(base_size = 16) +
+   mytheme + 
+  theme(panel.spacing = unit(0.5, "lines"),
+        aspect.ratio = 1,
+        strip.text = element_text(face = "bold"),
+        legend.position = "bottom"
+    #     plot.caption = element_text(size=14),
+    #     axis.text.x = element_text(size = 16),
+    #     axis.text.y = element_text(size = 16),
+    # legend.text = element_text(size = 16)
+    )
+
+
+ggsave("Figures/article/bar_att.emf", width = 10, height = 12)
+ggsave("Figures/article/bar_att.svg", width = 10, height = 12)
+
+
+
+```
 
 
 ## Use of self study resources
@@ -660,7 +798,7 @@ subj_fac_n <- enkat_eng |>
   deframe()
 
 
-plotdata <- enkat_eng |>
+plot_data <- enkat_eng |>
   select(subj_fac,starts_with("Resurs_Likert")) |>
   filter(!is.na(subj_fac)) |>
   pivot_longer(
@@ -689,11 +827,11 @@ plotdata <- enkat_eng |>
     filter(!is.na(subj_fac)) |> 
     nrow()
   
-  overall <- plotdata |>
+  overall <- plot_data |>
     summarise(n = sum(n), total = sum(total), .by = item_label) |>
     mutate(pct = n / total,
            subj_fac = factor(paste0("Overall (n=", overall_n, ")"), 
-                            levels = c(levels(plotdata$subj_fac), 
+                            levels = c(levels(plot_data$subj_fac), 
                                        paste0("Overall (n=", overall_n, ")"))),
            item_label0 = fct_reorder(item_label, pct, .desc = TRUE)) |> 
     mutate(
@@ -702,13 +840,13 @@ plotdata <- enkat_eng |>
    
   
   
-plotdata <- plotdata |>
+plot_data <- plot_data |>
   mutate(
     item_label = factor(item_label, levels = levels(overall$item_label0),labels=levels(overall$item_label))
   )
 
-#  plotdata_full <- bind_rows(
-#    plotdata |> mutate(subj_fac = fct_expand(subj_fac, "Overall")),
+#  plot_data_full <- bind_rows(
+#    plot_data |> mutate(subj_fac = fct_expand(subj_fac, "Overall")),
 #    overall
 #  )
   
@@ -725,7 +863,7 @@ plotdata <- plotdata |>
 
 set.seed(123)
 
-p <- plotdata |>
+p <- plot_data |>
     ggplot(aes(x=pct, y=fct_rev(subj_fac), color=item_label)) +
     geom_path(aes(group=item_label), alpha=0.7, linewidth=1.2) +
     geom_jitter(size=5, width=0, height=0.05, alpha=0.8) +
